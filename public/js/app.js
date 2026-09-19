@@ -10,6 +10,7 @@
     sheetsStatus: null,
     currentEditingClaimId: null,
     currentReviewingClaimId: null,
+    currentPreviewingClaim: null,
     filters: {
       month: '',
       category: 'all',
@@ -363,28 +364,270 @@
     return window.location.origin;
   }
 
+  // 安全解析上傳檔案網址 (支援 GitHub Pages 次目錄與本機 file:// 包含 # 字元之編碼)
+  function resolveUploadUrl(rawUrl) {
+    if (!rawUrl) return '';
+    if (rawUrl.startsWith('data:image') || rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('blob:')) {
+      return rawUrl;
+    }
+    const cleanPath = rawUrl.replace(/^\/?(public\/)?uploads\//, '');
+
+    // 1. 本地 file 協定 (例如 file:///d:/#1_GOOGLE_Antigravity/...)
+    // 關鍵修復：路徑若含有 # 符號，Chrome/Edge 會將其解析為 URL Fragment (錨點)，導致嘗試開啟 file:///d:/ 而觸發「I/O error」！
+    if (window.location.protocol === 'file:') {
+      const safeHref = window.location.href.replace(/#/g, '%23');
+      const dirUrl = safeHref.substring(0, safeHref.lastIndexOf('/') + 1);
+      if (dirUrl.includes('/public/')) {
+        return new URL('uploads/' + cleanPath, dirUrl).href;
+      } else {
+        return new URL('public/uploads/' + cleanPath, dirUrl).href;
+      }
+    }
+
+    // 2. 雲端直連模式 (GitHub Pages: https://<user>.github.io/<repo>/...)
+    if (window.api && window.api.isCloudMode) {
+      const currentHref = window.location.href;
+      const dirUrl = currentHref.substring(0, currentHref.lastIndexOf('/') + 1);
+      if (dirUrl.includes('/public/')) {
+        return new URL('uploads/' + cleanPath, dirUrl).href;
+      } else {
+        return new URL('public/uploads/' + cleanPath, dirUrl).href;
+      }
+    }
+
+    // 3. 一般伺服器模式 (localhost:3050)
+    const serverBase = getServerBaseUrl();
+    return `${serverBase}${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
+  }
+
   // 取得完整發票憑證網址 (智慧處理後端代理端點、本機檔案、Google Drive 與 Base64)
   function getFullReceiptUrl(url, claimId = null) {
     if (!url) return '';
 
-    if (url.startsWith('data:image') || url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.startsWith('data:image') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
       return url;
     }
 
-    // 雲端直連模式 (GitHub Pages 靜態目錄讀取)
-    if (window.api && window.api.isCloudMode) {
-      const cleanPath = url.replace(/^\/?(public\/)?uploads\//, '');
-      return `uploads/${cleanPath}`;
+    // 雲端直連模式 (GitHub Pages 靜態目錄讀取) 或 本地 file 協定
+    if ((window.api && window.api.isCloudMode) || window.location.protocol === 'file:') {
+      return resolveUploadUrl(url);
     }
 
     const serverBase = getServerBaseUrl();
 
-    // 若有提供 claimId 且非純 Base64，優先使用後端二進位專屬代理端點 (解決 Live Server 404 與 Drive 預覽問題)
+    // 若有提供 claimId 且非純 Base64，優先使用後端二進位專屬代理端點
     if (claimId && !url.startsWith('data:image')) {
       return `${serverBase}/api/claims/${claimId}/receipt`;
     }
 
-    return serverBase + (url.startsWith('/') ? url : '/' + url);
+    return `${serverBase}${url.startsWith('/') ? url : '/' + url}`;
+  }
+
+  // 將 Base64 資料轉換為二進位 Blob (避免 Chrome/Edge 對 data: URL 進行頂層導航造成 I/O error)
+  function base64ToBlob(dataUrl) {
+    const parts = dataUrl.split(';base64,');
+    const contentType = (parts[0].split(':')[1] || 'image/png').split(';')[0];
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+    return new Blob([uInt8Array], { type: contentType });
+  }
+
+  // 以獨立新分頁開啟發票原始圖檔檢視視窗 (完全免除 I/O error，內建下載與列印按鈕)
+  function openReceiptViewerWindow(imgSrc, claim = {}) {
+    const title = claim.claim_no ? `發票憑證_${claim.claim_no}` : '發票憑證原始相片';
+    const amountStr = claim.amount ? `NT$ ${Number(claim.amount).toLocaleString('en-US')}` : '';
+    const userStr = claim.user_name ? `${escapeHtml(claim.user_name)} (${escapeHtml(claim.department || '同仁')})` : '';
+    const itemStr = claim.item_name ? `[${escapeHtml(claim.category || '未分類')}] ${escapeHtml(claim.item_name)}` : '';
+
+    const win = window.open('', '_blank');
+    if (!win) {
+      showToast('在新分頁開啟被瀏覽器阻擋，請於網址列允許彈出式視窗', 'warning');
+      return;
+    }
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="zh-TW">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            background-color: #0b0f19;
+            color: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+          }
+          header {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+          }
+          .title-area { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+          .title-tag { background: #2563eb; color: #fff; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-family: monospace; }
+          .title-text { font-size: 15px; font-weight: 600; color: #e2e8f0; }
+          .meta-text { font-size: 13px; color: #94a3b8; }
+          .actions { display: flex; gap: 10px; }
+          .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.08);
+            color: #f8fafc;
+          }
+          .btn:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+          .btn-primary { background: #2563eb; border-color: #3b82f6; }
+          .btn-primary:hover { background: #1d4ed8; }
+          main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0b0f19 100%);
+          }
+          .img-wrapper {
+            max-width: 96vw;
+            max-height: 85vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          img {
+            max-width: 100%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: transform 0.2s ease;
+          }
+          @media print {
+            header { display: none !important; }
+            main { padding: 0 !important; background: #fff !important; }
+            img { max-height: 98vh !important; box-shadow: none !important; border: none !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <header>
+          <div class="title-area">
+            <span class="title-tag">${escapeHtml(claim.claim_no || 'EXP')}</span>
+            <span class="title-text">${itemStr || '發票憑證照片'}</span>
+            <span class="meta-text">${userStr ? '申請同仁: ' + userStr : ''} ${amountStr ? '| ' + amountStr : ''}</span>
+          </div>
+          <div class="actions">
+            <button onclick="downloadImg()" class="btn btn-primary">💾 下載原始照片</button>
+            <button onclick="window.print()" class="btn">🖨️ 列印憑證</button>
+            <button onclick="window.close()" class="btn">✕ 關閉視窗</button>
+          </div>
+        </header>
+        <main>
+          <div class="img-wrapper">
+            <img id="main-receipt-img" src="${imgSrc}" alt="發票憑證相片" onerror="this.onerror=null; this.alt='⚠️ 照片載入失敗 (若為雲端模式請確認憑證已同步上傳至伺服器或 Google Drive)';" />
+          </div>
+        </main>
+        <script>
+          function downloadImg() {
+            const img = document.getElementById('main-receipt-img');
+            const a = document.createElement('a');
+            a.href = img.src;
+            a.download = '${title}.png';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }
+        </script>
+      </body>
+      </html>
+    `);
+    win.document.close();
+  }
+
+  // 點擊「在新分頁開啟原始檔案」的安全排程處理
+  function openReceiptInNewTab(claim) {
+    if (!claim || !claim.receipt_url) {
+      showToast('此申請單無發票憑證相片', 'warning');
+      return;
+    }
+
+    const rawUrl = claim.receipt_url;
+
+    // 1. Google Drive 網址：轉換為標準檢視 URL
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      const driveMatch = rawUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=|uc\?export=view&id=)([a-zA-Z0-9_-]+)/);
+      if (driveMatch && driveMatch[1]) {
+        const driveUrl = `https://drive.google.com/file/d/${driveMatch[1]}/view?usp=sharing`;
+        window.open(driveUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      window.open(rawUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // 2. Base64 格式 (data:image/...)
+    // Chrome / Edge 禁止頂層視窗導航至超長 data: URL (會觸發 I/O error 或安全防護)
+    if (rawUrl.startsWith('data:image/')) {
+      try {
+        const blob = base64ToBlob(rawUrl);
+        const blobUrl = URL.createObjectURL(blob);
+        const win = window.open(blobUrl, '_blank');
+        if (!win) {
+          openReceiptViewerWindow(rawUrl, claim);
+        } else {
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+        }
+        return;
+      } catch (err) {
+        console.warn('Base64 to blob failed, fallback to viewer window:', err);
+        openReceiptViewerWindow(rawUrl, claim);
+        return;
+      }
+    }
+
+    // 3. 本地 file 協定 (直接以編碼後的安全路徑於新分頁開啟原生圖檔)
+    if (window.location.protocol === 'file:') {
+      const resolvedUrl = resolveUploadUrl(rawUrl);
+      window.open(resolvedUrl, '_blank');
+      return;
+    }
+
+    // 4. 相對路徑 (uploads/...)
+    const resolvedUrl = resolveUploadUrl(rawUrl);
+
+    // 若彈窗內的圖片已經載入成功 (naturalWidth > 1)，優先以安全新分頁呈現
+    const previewImg = dom.receiptViewerImg;
+    const currentSrc = (previewImg && previewImg.currentSrc) || (previewImg && previewImg.src);
+    if (currentSrc && (currentSrc.startsWith('data:image') || currentSrc.startsWith('blob:'))) {
+      openReceiptViewerWindow(currentSrc, claim);
+      return;
+    }
+
+    // 否則開啟安全 Viewer 視窗
+    openReceiptViewerWindow(resolvedUrl, claim);
   }
 
   // 開啟發票憑證大圖即時檢視彈窗
@@ -395,11 +638,10 @@
       return;
     }
 
-    const serverBase = getServerBaseUrl();
+    state.currentPreviewingClaim = claim;
+
     const fullUrl = getFullReceiptUrl(claim.receipt_url, claim.id);
-    const directUrl = claim.receipt_url.startsWith('http')
-      ? claim.receipt_url
-      : `${serverBase}${claim.receipt_url.startsWith('/') ? claim.receipt_url : '/' + claim.receipt_url}`;
+    const resolvedUrl = resolveUploadUrl(claim.receipt_url);
 
     dom.receiptViewerClaimNo.textContent = claim.claim_no || '-';
     dom.receiptViewerReceiptNo.textContent = claim.receipt_no || '(未填發票號)';
@@ -417,12 +659,13 @@
     img.onerror = async () => {
       if (retryCount === 0) {
         retryCount++;
-        console.warn('憑證圖片專屬端點載入重試，嘗試靜態直連路徑:', directUrl);
-        img.src = directUrl;
+        console.warn('憑證圖片載入重試，嘗試解析後完整路徑:', resolvedUrl);
+        img.src = resolvedUrl;
         return;
       }
 
-      if (retryCount === 1) {
+      const serverBase = getServerBaseUrl();
+      if (retryCount === 1 && !api.isCloudMode && serverBase) {
         retryCount++;
         console.warn('嘗試透過 Base64 終極備援端點載入憑證...');
         try {
@@ -442,7 +685,23 @@
     };
 
     img.src = fullUrl;
-    dom.receiptViewerOpenLink.href = directUrl;
+
+    // 智慧指派 href，供滑鼠中鍵或右鍵「在新分頁中開啟連結」使用
+    if (claim.receipt_url.startsWith('data:image')) {
+      try {
+        const blob = base64ToBlob(claim.receipt_url);
+        dom.receiptViewerOpenLink.href = URL.createObjectURL(blob);
+      } catch (e) {
+        dom.receiptViewerOpenLink.href = 'javascript:void(0)';
+      }
+    } else if (claim.receipt_url.includes('drive.google.com')) {
+      const driveMatch = claim.receipt_url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=|uc\?export=view&id=)([a-zA-Z0-9_-]+)/);
+      dom.receiptViewerOpenLink.href = driveMatch && driveMatch[1]
+        ? `https://drive.google.com/file/d/${driveMatch[1]}/view?usp=sharing`
+        : claim.receipt_url;
+    } else {
+      dom.receiptViewerOpenLink.href = resolvedUrl;
+    }
 
     dom.modalReceiptViewer.classList.add('active');
   }
@@ -2348,6 +2607,18 @@
       dom.btnReviewViewReceipt.addEventListener('click', () => {
         if (state.currentReviewingClaimId) {
           openReceiptPreview(state.currentReviewingClaimId);
+        }
+      });
+    }
+
+    if (dom.receiptViewerOpenLink) {
+      dom.receiptViewerOpenLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (state.currentPreviewingClaim) {
+          openReceiptInNewTab(state.currentPreviewingClaim);
+        } else if (state.currentReviewingClaimId) {
+          const c = state.claims.find(item => item.id === state.currentReviewingClaimId);
+          if (c) openReceiptInNewTab(c);
         }
       });
     }
