@@ -125,12 +125,24 @@ class GoogleDriveService {
   }
 
   // 取得本機實體檔案路徑 (供 ExcelJS 嵌入圖片使用)
-  getLocalFilePathFromUrl(receiptUrl) {
-    if (!receiptUrl) return null;
-    if (receiptUrl.startsWith('/uploads/')) {
+  getLocalFilePathFromUrl(receiptUrl, claimNo = '') {
+    if (!receiptUrl && !claimNo) return null;
+    if (receiptUrl && receiptUrl.startsWith('/uploads/')) {
       const fileName = path.basename(receiptUrl);
       const fullPath = path.join(UPLOADS_DIR, fileName);
-      return fs.existsSync(fullPath) ? fullPath : null;
+      if (fs.existsSync(fullPath)) return fullPath;
+    }
+    // 若 receiptUrl 是外部雲端網址或其它，嘗試依單號搜尋本機備份
+    if (claimNo && fs.existsSync(UPLOADS_DIR)) {
+      try {
+        const files = fs.readdirSync(UPLOADS_DIR);
+        const found = files.find(f => f.startsWith(claimNo));
+        if (found) {
+          return path.join(UPLOADS_DIR, found);
+        }
+      } catch (e) {
+        console.warn('Scan uploads dir failed:', e.message);
+      }
     }
     return null;
   }

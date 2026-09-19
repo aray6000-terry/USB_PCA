@@ -227,6 +227,93 @@ class ApiService {
     });
   }
 
+  // 載入發票憑證圖片並轉化為 Excel 專用 Base64 與尺寸
+  async loadReceiptImageForExcel(src) {
+    if (!src || typeof src !== 'string') return null;
+
+    let fetchUrl = src.trim();
+    // 1. 處理 Google Drive 檢視連結，轉為 Google 縮圖 CDN (支援跨域 CORS 直連)
+    const driveMatch = fetchUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=|uc\?export=view&id=)([a-zA-Z0-9_-]+)/);
+    if (driveMatch && driveMatch[1]) {
+      fetchUrl = `https://lh3.googleusercontent.com/d/${driveMatch[1]}=w800`;
+    } else if (!fetchUrl.startsWith('data:') && !fetchUrl.startsWith('http://') && !fetchUrl.startsWith('https://')) {
+      // 2. 相對路徑 (例如 /uploads/xxx 或 uploads/xxx) 補齊為當前環境絕對路徑
+      if (typeof window !== 'undefined' && window.location) {
+        const origin = window.location.origin || '';
+        const cleanPath = fetchUrl.startsWith('/') ? fetchUrl : `/${fetchUrl}`;
+        fetchUrl = `${origin}${cleanPath}`;
+      }
+    }
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      if (!fetchUrl.startsWith('data:')) {
+        img.crossOrigin = 'anonymous';
+      }
+
+      // 超時防護 (最多等 2.5 秒，避免外部網路延遲卡死匯出)
+      const timer = setTimeout(() => {
+        resolve(null);
+      }, 2500);
+
+      img.onload = () => {
+        clearTimeout(timer);
+        try {
+          const canvas = document.createElement('canvas');
+          let w = img.naturalWidth || img.width || 120;
+          let h = img.naturalHeight || img.height || 80;
+
+          // 限制最大邊長為 800px，兼顧解析度與 Excel 檔案大小
+          const maxDim = 800;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve({
+            base64: dataUrl,
+            extension: 'jpeg',
+            aspectRatio: w / h
+          });
+        } catch (err) {
+          // 若 Canvas 因跨域 tainted 報錯，但原為 data:image 格式則直接使用
+          if (src.startsWith('data:image/')) {
+            const ext = src.includes('image/png') ? 'png' : 'jpeg';
+            resolve({ base64: src, extension: ext, aspectRatio: 1.33 });
+          } else {
+            console.warn('憑證圖片無法透過 Canvas 轉碼 (CORS 限制):', err.message);
+            resolve(null);
+          }
+        }
+      };
+
+      img.onerror = () => {
+        clearTimeout(timer);
+        // 若帶有 crossOrigin 失敗，降級重試 data:image 直接回傳
+        if (src.startsWith('data:image/')) {
+          const ext = src.includes('image/png') ? 'png' : 'jpeg';
+          resolve({ base64: src, extension: ext, aspectRatio: 1.33 });
+        } else {
+          resolve(null);
+        }
+      };
+
+      img.src = fetchUrl;
+    });
+  }
+
   // 純前端 / GitHub Pages / 雲端直連模式：以 ExcelJS 生成標準二進位 .xlsx 報表
   async generateClientExcel(claims, filterInfo = {}) {
     const ExcelJS = await this.ensureExcelJS();
@@ -285,7 +372,7 @@ class ApiService {
       { header: '發票/收據號碼', key: 'receipt_no', width: 18 },
       { header: '備註說明', key: 'notes', width: 28 },
       { header: '審核狀態', key: 'status_label', width: 14 },
-      { header: '憑證照片 (連結)', key: 'receipt_photo', width: 26 }
+      { header: '發票憑證相片 (實體圖檔)', key: 'receipt_photo', width: 32 }
     ];
 
     const headerRow = sheet.getRow(3);
@@ -310,7 +397,7 @@ class ApiService {
     headerRow.height = 28;
 
     let currentRowIdx = 4;
-    claims.forEach(c => {
+    for (const c of claims) {
       const row = sheet.getRow(currentRowIdx);
       const approvedAmt = c.approved_amount !== undefined && c.approved_amount !== null ? c.approved_amount : c.amount;
 
@@ -326,13 +413,51 @@ class ApiService {
         c.receipt_no || '-',
         c.notes || '-',
         statusLabels[c.status] || c.status || '待審核',
-        c.receipt_url ? (c.receipt_url.startsWith('http') ? '🔗 點擊開啟' : '已附憑證照片') : '-'
+        ''
       ];
 
+      // 嘗試載入並內嵌憑證實體圖檔
+      let hasImage = false;
+      if (c.receipt_url) {
+        try {
+          const imgData = await this.loadReceiptImageForExcel(c.receipt_url);
+          if (imgData && imgData.base64) {
+            const imageId = workbook.addImage({
+              base64: imgData.base64,
+              extension: imgData.extension
+            });
+
+            // 保持比例置入儲存格
+            let targetH = 68;
+            let targetW = Math.round(targetH * (imgData.aspectRatio || 1.33));
+            if (targetW > 165) {
+              targetW = 165;
+              targetH = Math.round(targetW / (imgData.aspectRatio || 1.33));
+            }
+
+            sheet.addImage(imageId, {
+              tl: { col: 11.08, row: currentRowIdx - 1 + 0.08 },
+              ext: { width: targetW, height: targetH },
+              editAs: 'oneCell'
+            });
+            hasImage = true;
+          }
+        } catch (err) {
+          console.warn(`前端 Excel 嵌入單據 ${c.claim_no} 照片失敗:`, err);
+        }
+      }
+
+      const photoCell = row.getCell(12);
       if (c.receipt_url && c.receipt_url.startsWith('http')) {
-        const photoCell = row.getCell(12);
-        photoCell.value = { text: '🔗 點擊開啟照片 (Drive/雲端)', hyperlink: c.receipt_url };
-        photoCell.font = { name: '微軟正黑體', size: 10, color: { argb: 'FF2563EB' }, underline: true };
+        photoCell.value = { text: '🔗 點擊開啟照片 (Drive)', hyperlink: c.receipt_url };
+        photoCell.font = { name: '微軟正黑體', size: 9, color: { argb: 'FF2563EB' }, underline: true };
+        photoCell.alignment = { vertical: 'bottom', horizontal: 'center' };
+      } else if (!hasImage) {
+        photoCell.value = c.receipt_url ? '已附發票憑證' : '-';
+        photoCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      } else {
+        photoCell.value = '';
+        photoCell.alignment = { vertical: 'middle', horizontal: 'center' };
       }
 
       for (let col = 1; col <= 12; col++) {
@@ -355,7 +480,7 @@ class ApiService {
           }
         } else if (col === 1 || col === 2 || col === 9 || col === 11) {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        } else {
+        } else if (col !== 12) {
           cell.alignment = { vertical: 'middle', horizontal: 'left' };
         }
       }
@@ -367,9 +492,9 @@ class ApiService {
           fgColor: { argb: 'FFF8FAFC' }
         };
       }
-      row.height = 26;
+      row.height = hasImage ? 78 : 28;
       currentRowIdx++;
-    });
+    }
 
     // 總計列
     const totalRow = sheet.getRow(currentRowIdx);

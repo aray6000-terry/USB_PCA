@@ -60,7 +60,7 @@ const exportService = {
       { header: '備註說明', key: 'notes', width: 28 },
       { header: '審核狀態', key: 'status_label', width: 14 },
       { header: '申請時間', key: 'created_at_fmt', width: 20 },
-      { header: '發票憑證照片 (Drive/預覽)', key: 'receipt_photo', width: 28 }
+      { header: '發票憑證照片 (實體圖檔)', key: 'receipt_photo', width: 32 }
     ];
 
     const headerRow = sheet.getRow(3);
@@ -85,13 +85,13 @@ const exportService = {
     headerRow.height = 28;
 
     const fs = require('fs');
+    const path = require('path');
     const googleDriveService = require('./googleDriveService');
 
     // 寫入資料列
     let currentRowIdx = 4;
     claims.forEach(c => {
       const row = sheet.getRow(currentRowIdx);
-      const photoText = c.receipt_url ? (c.receipt_url.startsWith('http') ? '🔗 點擊開啟照片' : '已上傳發票憑證') : '-';
       const approvedAmt = c.approved_amount !== undefined && c.approved_amount !== null ? c.approved_amount : c.amount;
 
       row.values = [
@@ -107,34 +107,67 @@ const exportService = {
         c.notes || '-',
         statusLabels[c.status] || c.status,
         new Date(c.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
-        photoText
+        ''
       ];
 
-      // 若有網址，設定為可點擊超連結
-      if (c.receipt_url && c.receipt_url.startsWith('http')) {
-        const photoCell = row.getCell(13);
-        photoCell.value = { text: '🔗 點擊開啟照片 (Drive)', hyperlink: c.receipt_url };
-        photoCell.font = { name: '微軟正黑體', size: 10, color: { argb: 'FF2563EB' }, underline: true };
-      }
-
-      // 嘗試嵌入本地憑證圖片縮圖
+      // 嘗試嵌入本地憑證圖片縮圖 (實體圖檔)
       let hasImageThumbnail = false;
-      const localFilePath = googleDriveService.getLocalFilePathFromUrl(c.receipt_url);
+      const localFilePath = googleDriveService.getLocalFilePathFromUrl(c.receipt_url, c.claim_no);
       if (localFilePath && fs.existsSync(localFilePath)) {
         try {
-          const imgExt = localFilePath.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+          let ext = path.extname(localFilePath).toLowerCase().replace('.', '');
+          if (ext === 'jpg') ext = 'jpeg';
+          if (!['png', 'jpeg', 'gif'].includes(ext)) ext = 'png';
+
           const imageId = workbook.addImage({
             filename: localFilePath,
-            extension: imgExt
+            extension: ext
           });
           sheet.addImage(imageId, {
-            tl: { col: 12.1, row: currentRowIdx - 1 + 0.1 },
-            ext: { width: 100, height: 60 }
+            tl: { col: 12.08, row: currentRowIdx - 1 + 0.08 },
+            ext: { width: 145, height: 68 },
+            editAs: 'oneCell'
           });
           hasImageThumbnail = true;
         } catch (imgErr) {
           console.warn('Embed image into Excel notice:', imgErr.message);
         }
+      } else if (c.receipt_url && c.receipt_url.startsWith('data:image')) {
+        try {
+          const matches = c.receipt_url.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+          if (matches) {
+            let ext = matches[1].toLowerCase();
+            if (ext === 'jpg') ext = 'jpeg';
+            if (!['png', 'jpeg', 'gif'].includes(ext)) ext = 'png';
+            const imgBuffer = Buffer.from(matches[2], 'base64');
+            const imageId = workbook.addImage({
+              buffer: imgBuffer,
+              extension: ext
+            });
+            sheet.addImage(imageId, {
+              tl: { col: 12.08, row: currentRowIdx - 1 + 0.08 },
+              ext: { width: 145, height: 68 },
+              editAs: 'oneCell'
+            });
+            hasImageThumbnail = true;
+          }
+        } catch (b64Err) {
+          console.warn('Embed base64 image into Excel notice:', b64Err.message);
+        }
+      }
+
+      // 若有網址，設定為可點擊超連結
+      const photoCell = row.getCell(13);
+      if (c.receipt_url && c.receipt_url.startsWith('http')) {
+        photoCell.value = { text: '🔗 點擊開啟照片 (Drive)', hyperlink: c.receipt_url };
+        photoCell.font = { name: '微軟正黑體', size: 9, color: { argb: 'FF2563EB' }, underline: true };
+        photoCell.alignment = { vertical: 'bottom', horizontal: 'center' };
+      } else if (!hasImageThumbnail) {
+        photoCell.value = c.receipt_url ? '已附發票憑證' : '-';
+        photoCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      } else {
+        photoCell.value = '';
+        photoCell.alignment = { vertical: 'middle', horizontal: 'center' };
       }
 
       // 樣式微調
@@ -159,7 +192,7 @@ const exportService = {
           }
         } else if (col === 1 || col === 2 || col === 9 || col === 11) {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        } else {
+        } else if (col !== 13) {
           cell.alignment = { vertical: 'middle', horizontal: 'left' };
         }
       }
@@ -171,7 +204,7 @@ const exportService = {
           fgColor: { argb: 'FFF8FAFC' }
         };
       }
-      row.height = hasImageThumbnail ? 54 : 26;
+      row.height = hasImageThumbnail ? 78 : 28;
       currentRowIdx++;
     });
 
