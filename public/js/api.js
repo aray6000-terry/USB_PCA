@@ -98,6 +98,27 @@ class ApiService {
     if (!localStorage.getItem('petty_cash_claims')) {
       const initialClaims = seed.claims || [];
       localStorage.setItem('petty_cash_claims', JSON.stringify(initialClaims));
+    } else {
+      // 自動校正修復歷史快取中缺漏或不符的憑證圖檔路徑
+      try {
+        const rawStored = localStorage.getItem('petty_cash_claims');
+        if (rawStored) {
+          let stored = JSON.parse(rawStored);
+          let changed = false;
+          stored.forEach(sc => {
+            if (seed.claims) {
+              const found = seed.claims.find(x => x.claim_no === sc.claim_no);
+              if (found && found.receipt_url && (!sc.receipt_url || sc.receipt_url !== found.receipt_url)) {
+                sc.receipt_url = found.receipt_url;
+                changed = true;
+              }
+            }
+          });
+          if (changed) {
+            localStorage.setItem('petty_cash_claims', JSON.stringify(stored));
+          }
+        }
+      } catch (e) {}
     }
 
     // 重新載入時若無使用者或含有廢棄帳號，強制使用最新種子名冊
@@ -227,34 +248,53 @@ class ApiService {
     });
   }
 
-  // 載入發票憑證圖片並轉化為 Excel 專用 Base64 與尺寸
-  async loadReceiptImageForExcel(src) {
-    if (!src || typeof src !== 'string') return null;
+  // 安全解析發票憑證路徑 (支援 GitHub Pages 次目錄與本機 file:// 包含 # 字元之編碼)
+  resolveReceiptUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
 
-    let fetchUrl = src.trim();
-    // 1. 處理 Google Drive 檢視連結，轉為 Google 縮圖 CDN (支援跨域 CORS 直連)
-    const driveMatch = fetchUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=|uc\?export=view&id=)([a-zA-Z0-9_-]+)/);
+    // Google Drive 縮圖直連 (lh3.googleusercontent.com 支援公開跨域讀取)
+    const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=|uc\?export=view&id=)([a-zA-Z0-9_-]+)/);
     if (driveMatch && driveMatch[1]) {
-      fetchUrl = `https://lh3.googleusercontent.com/d/${driveMatch[1]}=w800`;
-    } else if (!fetchUrl.startsWith('data:') && !fetchUrl.startsWith('http://') && !fetchUrl.startsWith('https://')) {
-      // 2. 相對路徑 (例如 /uploads/xxx 或 uploads/xxx) 補齊為當前環境絕對路徑
-      if (typeof window !== 'undefined' && window.location) {
-        const origin = window.location.origin || '';
-        const cleanPath = fetchUrl.startsWith('/') ? fetchUrl : `/${fetchUrl}`;
-        fetchUrl = `${origin}${cleanPath}`;
+      return `https://lh3.googleusercontent.com/d/${driveMatch[1]}=w800`;
+    }
+
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+
+    const cleanPath = url.replace(/^\/?(public\/)?uploads\//, ''); // e.g. "EXP-..."
+
+    if (typeof window !== 'undefined' && window.location) {
+      if (window.location.protocol === 'file:') {
+        const safeHref = window.location.href.replace(/#/g, '%23');
+        const dirUrl = safeHref.substring(0, safeHref.lastIndexOf('/') + 1);
+        if (dirUrl.includes('/public/')) {
+          return new URL('uploads/' + cleanPath, dirUrl).href;
+        } else {
+          return new URL('public/uploads/' + cleanPath, dirUrl).href;
+        }
+      }
+
+      // GitHub Pages 或一般 Web 伺服器 (包含次目錄如 /USB_PCA/)
+      const href = window.location.href.split('?')[0].split('#')[0];
+      const dirUrl = href.substring(0, href.lastIndexOf('/') + 1);
+      if (dirUrl.includes('/public/')) {
+        return new URL('uploads/' + cleanPath, dirUrl).href;
+      } else {
+        return new URL('public/uploads/' + cleanPath, dirUrl).href;
       }
     }
 
+    return url;
+  }
+
+  // 透過 Canvas 轉碼非標準格式 (例如 WebP 轉成廣泛相容的 JPEG)
+  async convertImageSourceViaCanvas(src) {
     return new Promise((resolve) => {
       const img = new Image();
-      if (!fetchUrl.startsWith('data:')) {
+      if (src.startsWith('http')) {
         img.crossOrigin = 'anonymous';
       }
-
-      // 超時防護 (最多等 2.5 秒，避免外部網路延遲卡死匯出)
-      const timer = setTimeout(() => {
-        resolve(null);
-      }, 2500);
+      const timer = setTimeout(() => resolve(null), 3000);
 
       img.onload = () => {
         clearTimeout(timer);
@@ -262,8 +302,6 @@ class ApiService {
           const canvas = document.createElement('canvas');
           let w = img.naturalWidth || img.width || 120;
           let h = img.naturalHeight || img.height || 80;
-
-          // 限制最大邊長為 800px，兼顧解析度與 Excel 檔案大小
           const maxDim = 800;
           if (w > maxDim || h > maxDim) {
             if (w > h) {
@@ -280,20 +318,17 @@ class ApiService {
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
-
           const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
           resolve({
             base64: dataUrl,
             extension: 'jpeg',
             aspectRatio: w / h
           });
-        } catch (err) {
-          // 若 Canvas 因跨域 tainted 報錯，但原為 data:image 格式則直接使用
+        } catch (e) {
           if (src.startsWith('data:image/')) {
             const ext = src.includes('image/png') ? 'png' : 'jpeg';
             resolve({ base64: src, extension: ext, aspectRatio: 1.33 });
           } else {
-            console.warn('憑證圖片無法透過 Canvas 轉碼 (CORS 限制):', err.message);
             resolve(null);
           }
         }
@@ -301,7 +336,6 @@ class ApiService {
 
       img.onerror = () => {
         clearTimeout(timer);
-        // 若帶有 crossOrigin 失敗，降級重試 data:image 直接回傳
         if (src.startsWith('data:image/')) {
           const ext = src.includes('image/png') ? 'png' : 'jpeg';
           resolve({ base64: src, extension: ext, aspectRatio: 1.33 });
@@ -310,8 +344,99 @@ class ApiService {
         }
       };
 
-      img.src = fetchUrl;
+      img.src = src;
     });
+  }
+
+  // 載入發票憑證圖片並轉化為 Excel 專用 Base64 與尺寸
+  async loadReceiptImageForExcel(src, claimNo = '') {
+    // 0. 優先由內建預載 Base64 字典直讀 (完全免除跨域、CORS、404、file:// 限制，100% 穩定秒開)
+    if (typeof window !== 'undefined' && window.PETTY_CASH_SEED_IMAGES) {
+      if (src && window.PETTY_CASH_SEED_IMAGES[src]) {
+        return window.PETTY_CASH_SEED_IMAGES[src];
+      }
+      if (claimNo && window.PETTY_CASH_SEED_IMAGES[claimNo]) {
+        return window.PETTY_CASH_SEED_IMAGES[claimNo];
+      }
+      if (src && typeof src === 'string') {
+        const cleanPath = src.replace(/^\/?(public\/)?uploads\//, '');
+        if (window.PETTY_CASH_SEED_IMAGES[cleanPath]) {
+          return window.PETTY_CASH_SEED_IMAGES[cleanPath];
+        }
+      }
+    }
+
+    if (!src || typeof src !== 'string') {
+      if (claimNo && typeof window !== 'undefined' && window.PETTY_CASH_SEED_IMAGES && window.PETTY_CASH_SEED_IMAGES[claimNo]) {
+        return window.PETTY_CASH_SEED_IMAGES[claimNo];
+      }
+      return null;
+    }
+
+    // 1. 如果已是 Base64 Data URL (同仁線上填報或 AI 辨識)
+    if (src.startsWith('data:image/')) {
+      const isPng = src.startsWith('data:image/png');
+      const isJpeg = src.startsWith('data:image/jpeg') || src.startsWith('data:image/jpg');
+      if (isPng || isJpeg) {
+        return {
+          base64: src,
+          extension: isPng ? 'png' : 'jpeg',
+          aspectRatio: 1.33
+        };
+      }
+      return await this.convertImageSourceViaCanvas(src);
+    }
+
+    // 2. 解析完整 URL (正確處理 GitHub Pages 次目錄與本機)
+    const fullUrl = this.resolveReceiptUrl(src);
+
+    // 3. 優先使用 fetch 讀取二進位 Blob (同源零 CORS 風險、不經 Canvas 絕不 Tainted)
+    try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 3500) : null;
+      const res = await fetch(fullUrl, {
+        signal: controller ? controller.signal : undefined
+      });
+      if (timer) clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const blob = await res.blob();
+      const mime = (blob.type || '').toLowerCase();
+      const isPng = mime.includes('png') || fullUrl.toLowerCase().endsWith('.png');
+      const isJpeg = mime.includes('jpeg') || mime.includes('jpg') || fullUrl.toLowerCase().endsWith('.jpg') || fullUrl.toLowerCase().endsWith('.jpeg');
+
+      // 使用 FileReader 轉為 Base64 Data URL
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      if (isPng || isJpeg) {
+        return {
+          base64: dataUrl,
+          extension: isPng ? 'png' : 'jpeg',
+          aspectRatio: 1.33
+        };
+      }
+
+      // 若為 WebP，透過同源 Blob ObjectURL 進行 Canvas 轉碼 (永不 Tainted)
+      const blobUrl = URL.createObjectURL(blob);
+      const converted = await this.convertImageSourceViaCanvas(blobUrl);
+      URL.revokeObjectURL(blobUrl);
+      if (converted) return converted;
+
+      return {
+        base64: dataUrl,
+        extension: 'png',
+        aspectRatio: 1.33
+      };
+    } catch (fetchErr) {
+      console.warn(`Fetch image failed for ${fullUrl}:`, fetchErr.message);
+      // 容錯備援：嘗試使用傳統 Image 標籤加載
+      return await this.convertImageSourceViaCanvas(fullUrl);
+    }
   }
 
   // 純前端 / GitHub Pages / 雲端直連模式：以 ExcelJS 生成標準二進位 .xlsx 報表
@@ -401,6 +526,15 @@ class ApiService {
       const row = sheet.getRow(currentRowIdx);
       const approvedAmt = c.approved_amount !== undefined && c.approved_amount !== null ? c.approved_amount : c.amount;
 
+      // 檢查憑證圖檔路徑 (若快取遺漏，自動從種子資料補齊)
+      let receiptUrl = c.receipt_url;
+      if (!receiptUrl && typeof window !== 'undefined' && window.PETTY_CASH_SEED_DATA && window.PETTY_CASH_SEED_DATA.claims) {
+        const matched = window.PETTY_CASH_SEED_DATA.claims.find(sc => sc.claim_no === c.claim_no);
+        if (matched && matched.receipt_url) {
+          receiptUrl = matched.receipt_url;
+        }
+      }
+
       row.values = [
         c.claim_no || '',
         c.expense_date || '',
@@ -416,44 +550,42 @@ class ApiService {
         ''
       ];
 
-      // 嘗試載入並內嵌憑證實體圖檔
+      // 嘗試載入並內嵌憑證實體圖檔 (支援 URL、單號與預載 Base64)
       let hasImage = false;
-      if (c.receipt_url) {
-        try {
-          const imgData = await this.loadReceiptImageForExcel(c.receipt_url);
-          if (imgData && imgData.base64) {
-            const imageId = workbook.addImage({
-              base64: imgData.base64,
-              extension: imgData.extension
-            });
+      try {
+        const imgData = await this.loadReceiptImageForExcel(receiptUrl, c.claim_no);
+        if (imgData && imgData.base64) {
+          const imageId = workbook.addImage({
+            base64: imgData.base64,
+            extension: imgData.extension
+          });
 
-            // 保持比例置入儲存格
-            let targetH = 68;
-            let targetW = Math.round(targetH * (imgData.aspectRatio || 1.33));
-            if (targetW > 165) {
-              targetW = 165;
-              targetH = Math.round(targetW / (imgData.aspectRatio || 1.33));
-            }
-
-            sheet.addImage(imageId, {
-              tl: { col: 11.08, row: currentRowIdx - 1 + 0.08 },
-              ext: { width: targetW, height: targetH },
-              editAs: 'oneCell'
-            });
-            hasImage = true;
+          // 保持比例置入儲存格
+          let targetH = 68;
+          let targetW = Math.round(targetH * (imgData.aspectRatio || 1.33));
+          if (targetW > 165) {
+            targetW = 165;
+            targetH = Math.round(targetW / (imgData.aspectRatio || 1.33));
           }
-        } catch (err) {
-          console.warn(`前端 Excel 嵌入單據 ${c.claim_no} 照片失敗:`, err);
+
+          sheet.addImage(imageId, {
+            tl: { col: 11.08, row: currentRowIdx - 1 + 0.08 },
+            ext: { width: targetW, height: targetH },
+            editAs: 'oneCell'
+          });
+          hasImage = true;
         }
+      } catch (err) {
+        console.warn(`前端 Excel 嵌入單據 ${c.claim_no} 照片失敗:`, err);
       }
 
       const photoCell = row.getCell(12);
-      if (c.receipt_url && c.receipt_url.startsWith('http')) {
-        photoCell.value = { text: '🔗 點擊開啟照片 (Drive)', hyperlink: c.receipt_url };
+      if (receiptUrl && receiptUrl.startsWith('http')) {
+        photoCell.value = { text: '🔗 點擊開啟照片 (Drive)', hyperlink: receiptUrl };
         photoCell.font = { name: '微軟正黑體', size: 9, color: { argb: 'FF2563EB' }, underline: true };
         photoCell.alignment = { vertical: 'bottom', horizontal: 'center' };
       } else if (!hasImage) {
-        photoCell.value = c.receipt_url ? '已附發票憑證' : '-';
+        photoCell.value = receiptUrl ? '已附發票憑證' : '-';
         photoCell.alignment = { vertical: 'middle', horizontal: 'center' };
       } else {
         photoCell.value = '';
