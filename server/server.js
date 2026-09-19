@@ -11,7 +11,7 @@ const exportRoutes = require('./routes/export');
 const sheetsRoutes = require('./routes/sheets');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3050;
 
 // 資安防護 1: 隱藏 Express 標頭與設定安全 HTTP 標頭
 app.disable('x-powered-by');
