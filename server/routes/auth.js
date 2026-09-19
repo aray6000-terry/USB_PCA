@@ -20,6 +20,13 @@ router.post('/login', async (req, res) => {
     }
 
     const cleanUsername = String(username).trim();
+    const bannedUsernames = ['admin', 'accountant', 'employee', 'designer'];
+    if (bannedUsernames.includes(cleanUsername.toLowerCase())) {
+      return res.status(401).json({
+        success: false,
+        message: '此預設示範帳號已遭永久刪除停用'
+      });
+    }
     let user = null;
 
     // 1. 即時向 Google Sheet 查詢最新名冊與密碼

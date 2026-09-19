@@ -33,6 +33,9 @@ class ApiService {
       window.location.protocol === 'file:'
     );
 
+    // 主動清除本機已快取的預設示範帳號 (admin, accountant, employee, designer)
+    this.purgeDeprecatedUsers();
+
     // 初始化本地快取資料庫
     this.initCloudStore();
 
@@ -50,6 +53,35 @@ class ApiService {
     }
   }
 
+  // 主動清除廢棄之預設示範帳號
+  purgeDeprecatedUsers() {
+    if (typeof localStorage === 'undefined') return;
+    const banned = ['admin', 'accountant', 'employee', 'designer'];
+
+    // 1. 若當前登入者身分為被刪除之帳號，強制清除登入態
+    if (this.currentUser && banned.includes((this.currentUser.username || '').toLowerCase())) {
+      console.warn('當前快取之登入者為已刪除預設帳號，強制清除登入狀態');
+      this.clearSession();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      }
+    }
+
+    // 2. 清理 localStorage 中遺留之使用者
+    try {
+      const raw = localStorage.getItem('petty_cash_users');
+      if (raw) {
+        let users = JSON.parse(raw);
+        const filtered = users.filter(u =>
+          !banned.includes((u.username || '').toLowerCase()) &&
+          !u.username.startsWith('user_') &&
+          !u.username.startsWith('sheet_user_')
+        );
+        localStorage.setItem('petty_cash_users', JSON.stringify(filtered));
+      }
+    } catch (e) {}
+  }
+
   enableCloudMode(reason) {
     this.isCloudMode = true;
     console.info(`[Mode] ${reason}`);
@@ -60,6 +92,7 @@ class ApiService {
   // 初始化雲端 / 本地 Store
   initCloudStore() {
     if (typeof localStorage === 'undefined') return;
+    this.purgeDeprecatedUsers();
     const seed = window.PETTY_CASH_SEED_DATA || {};
 
     if (!localStorage.getItem('petty_cash_claims')) {
@@ -67,7 +100,9 @@ class ApiService {
       localStorage.setItem('petty_cash_claims', JSON.stringify(initialClaims));
     }
 
-    if (!localStorage.getItem('petty_cash_users')) {
+    // 重新載入時若無使用者或含有廢棄帳號，強制使用最新種子名冊
+    const rawUsers = localStorage.getItem('petty_cash_users');
+    if (!rawUsers || rawUsers.includes('"admin"') || rawUsers.includes('"accountant"')) {
       const initialUsers = seed.users || [];
       localStorage.setItem('petty_cash_users', JSON.stringify(initialUsers));
     }
@@ -108,11 +143,20 @@ class ApiService {
   }
 
   getCloudUsers() {
+    const banned = ['admin', 'accountant', 'employee', 'designer'];
+    let users = [];
     try {
       const u = localStorage.getItem('petty_cash_users');
-      if (u) return JSON.parse(u);
-    } catch (e) {}
-    return (window.PETTY_CASH_SEED_DATA && window.PETTY_CASH_SEED_DATA.users) || [];
+      if (u) users = JSON.parse(u);
+      else users = (window.PETTY_CASH_SEED_DATA && window.PETTY_CASH_SEED_DATA.users) || [];
+    } catch (e) {
+      users = (window.PETTY_CASH_SEED_DATA && window.PETTY_CASH_SEED_DATA.users) || [];
+    }
+    return users.filter(u =>
+      !banned.includes((u.username || '').toLowerCase()) &&
+      !u.username.startsWith('user_') &&
+      !u.username.startsWith('sheet_user_')
+    );
   }
 
   saveCloudUsers(users) {
@@ -250,6 +294,11 @@ class ApiService {
       // 雲端直連模式登入驗證
       const uName = String(username || '').trim().toLowerCase();
       const pwd = String(password || '').trim();
+
+      const banned = ['admin', 'accountant', 'employee', 'designer'];
+      if (banned.includes(uName)) {
+        throw new Error('此預設示範帳號已遭永久刪除停用');
+      }
 
       const users = this.getCloudUsers();
       let matched = users.find(u =>
