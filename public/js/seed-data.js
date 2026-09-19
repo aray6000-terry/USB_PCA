@@ -1,0 +1,774 @@
+window.PETTY_CASH_SEED_DATA = {
+  "users": [
+    {
+      "id": "usr_terry_01",
+      "username": "terry",
+      "password_hash": "$2a$10$rAthH9aq6Ul0AdmbEVazbOX0Siyg8WE/D6qgNr616eP5nhxeQcwny",
+      "plain_password": "terry123",
+      "name": "Terry (超級使用者 / 陳總監)",
+      "role": "admin",
+      "department": "總管理處",
+      "created_at": "2026-09-19T00:52:48.899Z"
+    },
+    {
+      "id": "usr_admin_01",
+      "username": "admin",
+      "password_hash": "$2a$10$kmmgcC/u.HzsAjSZHcidie2u0GIpVS5Df1VQI8zXcv6.PEmgz3Mla",
+      "name": "超級管理者 (陳總監)",
+      "role": "admin",
+      "department": "管理部",
+      "created_at": "2026-09-18T16:27:40.722Z",
+      "plain_password": "admin123"
+    },
+    {
+      "id": "usr_acc_01",
+      "username": "accountant",
+      "password_hash": "$2a$10$kmmgcC/u.HzsAjSZHcidielXIIbs7Z/FxhyaBYY1YDe8TrsD974vi",
+      "name": "王會計 (財務部)",
+      "role": "accountant",
+      "department": "財務部",
+      "created_at": "2026-09-18T16:27:40.804Z",
+      "plain_password": "acc123"
+    },
+    {
+      "id": "usr_emp_01",
+      "username": "employee",
+      "password_hash": "$2a$10$kmmgcC/u.HzsAjSZHcidieL9Az8.rPSesqWqTaSjEgVf7ReO/IDrq",
+      "name": "張小明 (業務同仁)",
+      "role": "employee",
+      "department": "業務一部",
+      "created_at": "2026-09-18T16:27:40.881Z",
+      "plain_password": "emp123"
+    },
+    {
+      "id": "usr_emp_02",
+      "username": "designer",
+      "password_hash": "$2a$10$kmmgcC/u.HzsAjSZHcidieL9Az8.rPSesqWqTaSjEgVf7ReO/IDrq",
+      "name": "李小美 (設計同仁)",
+      "role": "employee",
+      "department": "設計研發組",
+      "created_at": "2026-09-18T16:27:40.963Z",
+      "plain_password": "emp123"
+    },
+    {
+      "id": "usr_1789777950380",
+      "username": "user_1789777950100",
+      "password_hash": "$2a$10$VSWoX2PWI6vEnyx3Kn/v7OXgmcLblXzJU9VUFm6K1PHUHc6dccA0W",
+      "name": "林測試",
+      "role": "employee",
+      "department": "行銷部",
+      "created_at": "2026-09-19T00:32:30.380Z"
+    },
+    {
+      "id": "usr_1789777973521",
+      "username": "user_1789777973304",
+      "password_hash": "$2a$10$kTrVdCdNRtJfMy0NJpcnFuy6maQa5xXrX7BXxWMamdr.rKJouFagO",
+      "name": "林測試",
+      "role": "employee",
+      "department": "行銷部",
+      "created_at": "2026-09-19T00:32:53.521Z"
+    },
+    {
+      "id": "usr_1789777987752",
+      "username": "user_1789777987553",
+      "password_hash": "$2a$10$oWjAzEXDbnLhVuqJ8kaaQeBx5yoZifWhKjClcxyLFm7f1zALjOI6W",
+      "name": "林測試",
+      "role": "employee",
+      "department": "行銷部",
+      "created_at": "2026-09-19T00:33:07.752Z"
+    },
+    {
+      "id": "usr_1789778004124",
+      "username": "user_1789778003858",
+      "password_hash": "$2a$10$S4vMBDeDlDgdnK7MI5TfBORMEkRmRSdXgYcUiP1YNA/7oLftqVruK",
+      "name": "林測試",
+      "role": "employee",
+      "department": "行銷部",
+      "created_at": "2026-09-19T00:33:24.124Z"
+    },
+    {
+      "id": "usr_1789778431296",
+      "username": "sheet_user_1789778430755",
+      "password_hash": "$2a$10$Ck2yRbfz7uNC.KfbKfJs6ekikq5wMXwrVt014r0ThLMa4vkZpj5Hu",
+      "name": "張雲端",
+      "role": "employee",
+      "department": "資訊科技部",
+      "created_at": "2026-09-19T00:40:31.296Z"
+    },
+    {
+      "id": "usr_sheet_1789780372628",
+      "username": "amyliupp@gmail.com",
+      "password_hash": "$2a$10$zmRtC2YmOM.kSgJucKc6IOB8HHsXmGIYhkXKvU.mh2OGHbUXUgliO",
+      "plain_password": "832556",
+      "name": "劉彩雲",
+      "role": "accountant",
+      "department": "財務部",
+      "created_at": "2026-09-19T01:12:52.733Z"
+    },
+    {
+      "id": "app_1789778828693_1ue7s",
+      "username": "aray6000@hotmail.com",
+      "password_hash": "$2a$10$UWpXAeMSFkoL9MpAE1.fBed1i01EeLvT0IY5tZOGd7jSbhO/hMvxi",
+      "plain_password": "ray781008",
+      "name": "李泰叡",
+      "role": "admin",
+      "department": "總管理處",
+      "created_at": "2026-09-19T01:18:47.050Z"
+    }
+  ],
+  "claims": [
+    {
+      "id": "clm_98a68edb3e8e",
+      "claim_no": "EXP-202609-010",
+      "user_id": "usr_1789778004124",
+      "user_name": "林測試",
+      "department": "行銷部",
+      "item_name": "客戶拜訪計程車車資 (二階段測試)",
+      "amount": 680,
+      "expense_date": "2026-09-19",
+      "category": "交通",
+      "receipt_no": "TR-99887766",
+      "notes": "二階段審核驗證單",
+      "receipt_url": "",
+      "status": "disbursed",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "送出申請",
+          "by": "林測試",
+          "by_role": "employee",
+          "at": "2026-09-19T00:33:24.217Z",
+          "note": "同仁提交零用金申請"
+        },
+        {
+          "action": "會計初審通過 (送交主管終審)",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-19T00:33:24.303Z",
+          "note": "",
+          "approved_amount": 680,
+          "claim_amount": 680,
+          "diff": 0
+        },
+        {
+          "action": "主管終審核准",
+          "by": "超級管理者 (陳總監)",
+          "by_role": "admin",
+          "at": "2026-09-19T00:33:24.319Z",
+          "note": "",
+          "approved_amount": 680,
+          "claim_amount": 680,
+          "diff": 0
+        },
+        {
+          "action": "完成撥款核銷",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-19T00:33:24.326Z",
+          "note": "",
+          "approved_amount": 680,
+          "claim_amount": 680,
+          "diff": 0
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.971Z",
+      "created_at": "2026-09-19T00:33:24.217Z",
+      "updated_at": "2026-09-19T00:33:31.971Z",
+      "approved_amount": 680
+    },
+    {
+      "id": "clm_903df5a623e3",
+      "claim_no": "EXP-202609-009",
+      "user_id": "usr_1789777987752",
+      "user_name": "林測試",
+      "department": "行銷部",
+      "item_name": "客戶拜訪計程車車資 (二階段測試)",
+      "amount": 680,
+      "expense_date": "2026-09-19",
+      "category": "交通",
+      "receipt_no": "TR-99887766",
+      "notes": "二階段審核驗證單",
+      "receipt_url": "",
+      "status": "disbursed",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "送出申請",
+          "by": "林測試",
+          "by_role": "employee",
+          "at": "2026-09-19T00:33:07.844Z",
+          "note": "同仁提交零用金申請"
+        },
+        {
+          "action": "會計初審通過 (送交主管終審)",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-19T00:33:08.013Z",
+          "note": "",
+          "approved_amount": 680,
+          "claim_amount": 680,
+          "diff": 0
+        },
+        {
+          "action": "主管終審核准",
+          "by": "超級管理者 (陳總監)",
+          "by_role": "admin",
+          "at": "2026-09-19T00:33:08.030Z",
+          "note": "",
+          "approved_amount": 680,
+          "claim_amount": 680,
+          "diff": 0
+        },
+        {
+          "action": "完成撥款核銷",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-19T00:33:08.037Z",
+          "note": "",
+          "approved_amount": 680,
+          "claim_amount": 680,
+          "diff": 0
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.974Z",
+      "created_at": "2026-09-19T00:33:07.844Z",
+      "updated_at": "2026-09-19T00:33:31.974Z",
+      "approved_amount": 680
+    },
+    {
+      "id": "clm_2aa906b091dc",
+      "claim_no": "EXP-202609-008",
+      "user_id": "usr_emp_01",
+      "user_name": "張小明 (業務同仁)",
+      "department": "業務一部",
+      "item_name": "拜訪竹科客戶高鐵商務車票",
+      "amount": 2980,
+      "expense_date": "2026-09-18",
+      "category": "交通",
+      "receipt_no": "THSR-99881122",
+      "notes": "竹科聯發科專案拜訪",
+      "receipt_url": "",
+      "status": "disbursed",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "送出申請",
+          "by": "張小明 (業務同仁)",
+          "by_role": "employee",
+          "at": "2026-09-19T00:09:00.577Z",
+          "note": "同仁提交零用金申請"
+        },
+        {
+          "action": "審核通過",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-19T00:09:00.656Z",
+          "note": "",
+          "approved_amount": 2980,
+          "claim_amount": 2980,
+          "diff": 0
+        },
+        {
+          "action": "完成撥款核銷",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-19T00:09:00.668Z",
+          "note": "",
+          "approved_amount": 2980,
+          "claim_amount": 2980,
+          "diff": 0
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.976Z",
+      "created_at": "2026-09-19T00:09:00.577Z",
+      "updated_at": "2026-09-19T00:33:31.976Z",
+      "approved_amount": 2980
+    },
+    {
+      "id": "clm_8947144f6aad",
+      "claim_no": "EXP-202609-007",
+      "user_id": "usr_emp_01",
+      "user_name": "張小明 (業務同仁)",
+      "department": "業務一部",
+      "item_name": "拜訪竹科客戶高鐵商務車票",
+      "amount": 2980,
+      "expense_date": "2026-09-18",
+      "category": "交通",
+      "receipt_no": "THSR-99881122",
+      "notes": "竹科聯發科專案拜訪",
+      "receipt_url": "",
+      "status": "disbursed",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "送出申請",
+          "by": "張小明 (業務同仁)",
+          "by_role": "employee",
+          "at": "2026-09-19T00:05:51.734Z",
+          "note": "同仁提交零用金申請"
+        },
+        {
+          "action": "審核通過",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-19T00:05:52.037Z",
+          "note": "",
+          "approved_amount": 2980,
+          "claim_amount": 2980,
+          "diff": 0
+        },
+        {
+          "action": "完成撥款核銷",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-19T00:05:52.049Z",
+          "note": "",
+          "approved_amount": 2980,
+          "claim_amount": 2980,
+          "diff": 0
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.979Z",
+      "created_at": "2026-09-19T00:05:51.734Z",
+      "updated_at": "2026-09-19T00:33:31.979Z",
+      "approved_amount": 2980
+    },
+    {
+      "id": "clm_1d3df556a980",
+      "claim_no": "EXP-202609-006",
+      "user_id": "usr_emp_01",
+      "user_name": "張小明 (業務同仁)",
+      "department": "業務一部",
+      "item_name": "設備",
+      "amount": 250,
+      "expense_date": "2026-09-18",
+      "category": "設備",
+      "receipt_no": "",
+      "notes": "",
+      "receipt_url": "/uploads/EXP-202609-006_receipt_1789758183694.webp",
+      "status": "pending",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "送出申請",
+          "by": "張小明 (業務同仁)",
+          "by_role": "employee",
+          "at": "2026-09-18T19:03:03.697Z",
+          "note": "同仁提交零用金申請"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.982Z",
+      "created_at": "2026-09-18T19:03:03.697Z",
+      "updated_at": "2026-09-19T00:33:31.982Z"
+    },
+    {
+      "id": "clm_0c053e77f15d",
+      "claim_no": "EXP-202609-005",
+      "user_id": "usr_emp_01",
+      "user_name": "張小明 (業務同仁)",
+      "department": "業務一部",
+      "item_name": "模組",
+      "amount": 5000,
+      "expense_date": "2026-09-18",
+      "category": "設備",
+      "receipt_no": "",
+      "notes": "",
+      "receipt_url": "/uploads/EXP-202609-005_receipt_1789758131062.jpeg",
+      "status": "pending",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "送出申請",
+          "by": "張小明 (業務同仁)",
+          "by_role": "employee",
+          "at": "2026-09-18T18:50:09.412Z",
+          "note": "同仁提交零用金申請"
+        },
+        {
+          "action": "修改內容",
+          "by": "張小明 (業務同仁)",
+          "by_role": "employee",
+          "at": "2026-09-18T19:02:11.068Z",
+          "note": "更新項目內容與金額"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.985Z",
+      "created_at": "2026-09-18T18:50:09.413Z",
+      "updated_at": "2026-09-19T00:33:31.985Z"
+    },
+    {
+      "id": "clm_0068374ec977",
+      "claim_no": "EXP-202609-004",
+      "user_id": "usr_admin_01",
+      "user_name": "超級管理者 (陳總監)",
+      "department": "管理部",
+      "item_name": "餐費",
+      "amount": 2200,
+      "expense_date": "2026-09-18",
+      "category": "餐食",
+      "receipt_no": "",
+      "notes": "",
+      "receipt_url": "/uploads/EXP-202609-004_receipt_1789756275935.jpeg",
+      "status": "approved",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "送出申請",
+          "by": "超級管理者 (陳總監)",
+          "by_role": "admin",
+          "at": "2026-09-18T18:31:15.945Z",
+          "note": "同仁提交零用金申請"
+        },
+        {
+          "action": "審核通過",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-18T18:41:01.378Z",
+          "note": "測試會計審核：部分非公務開支剔除，實批核准",
+          "approved_amount": 2100,
+          "claim_amount": 2200,
+          "diff": -100
+        },
+        {
+          "action": "審核通過",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-18T18:41:19.854Z",
+          "note": "測試會計審核：部分非公務開支剔除，實批核准",
+          "approved_amount": 2100,
+          "claim_amount": 2200,
+          "diff": -100
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.988Z",
+      "created_at": "2026-09-18T18:31:15.945Z",
+      "updated_at": "2026-09-19T00:33:31.988Z",
+      "approved_amount": 2100
+    },
+    {
+      "id": "clm_b6f7c6572afe",
+      "claim_no": "EXP-202609-003",
+      "user_id": "usr_admin_01",
+      "user_name": "超級管理者 (陳總監)",
+      "department": "管理部",
+      "item_name": "AI辨識測試-台北至南港車資",
+      "amount": 420,
+      "expense_date": "2026-09-18",
+      "category": "交通",
+      "receipt_no": "TDC-8899",
+      "notes": "台灣大車隊收據",
+      "receipt_url": "/uploads/EXP-202609-002_receipt_1789754041609.png",
+      "status": "disbursed",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "AI自動辨識送審",
+          "by": "超級管理者 (陳總監)",
+          "by_role": "admin",
+          "at": "2026-09-18T17:54:01.633Z",
+          "note": "由發票照片多張自動辨識生成"
+        },
+        {
+          "action": "審核通過",
+          "by": "超級管理者 (陳總監)",
+          "by_role": "admin",
+          "at": "2026-09-18T18:49:06.384Z",
+          "note": "",
+          "approved_amount": 400,
+          "claim_amount": 420,
+          "diff": -20
+        },
+        {
+          "action": "完成撥款核銷",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-18T18:49:17.244Z",
+          "note": "",
+          "approved_amount": 400,
+          "claim_amount": 420,
+          "diff": -20
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.991Z",
+      "created_at": "2026-09-18T17:54:01.633Z",
+      "updated_at": "2026-09-19T00:33:31.991Z",
+      "approved_amount": 400
+    },
+    {
+      "id": "clm_a490f47d4a89",
+      "claim_no": "EXP-202609-002",
+      "user_id": "usr_admin_01",
+      "user_name": "超級管理者 (陳總監)",
+      "department": "管理部",
+      "item_name": "AI辨識測試-咖啡豆與鮮奶",
+      "amount": 350,
+      "expense_date": "2026-09-18",
+      "category": "餐食",
+      "receipt_no": "AB-98765432",
+      "notes": "AI單照多張發票自動建立",
+      "receipt_url": "/uploads/EXP-202609-002_receipt_1789754041609.png",
+      "status": "approved",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "AI自動辨識送審",
+          "by": "超級管理者 (陳總監)",
+          "by_role": "admin",
+          "at": "2026-09-18T17:54:01.610Z",
+          "note": "由發票照片多張自動辨識生成"
+        },
+        {
+          "action": "審核通過",
+          "by": "王會計 (財務部)",
+          "by_role": "accountant",
+          "at": "2026-09-18T18:49:39.514Z",
+          "note": "",
+          "approved_amount": 350,
+          "claim_amount": 350,
+          "diff": 0
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.994Z",
+      "created_at": "2026-09-18T17:54:01.610Z",
+      "updated_at": "2026-09-19T00:33:31.994Z",
+      "approved_amount": 350
+    },
+    {
+      "id": "clm_a8cee7848e48",
+      "claim_no": "EXP-202609-001",
+      "user_id": "usr_admin_01",
+      "user_name": "超級管理者 (陳總監)",
+      "department": "管理部",
+      "item_name": "公車",
+      "amount": 300,
+      "expense_date": "2026-09-18",
+      "category": "交通",
+      "receipt_no": "",
+      "notes": "",
+      "receipt_url": "/uploads/EXP-202609-001_receipt_1789753527809.png",
+      "status": "pending",
+      "rejection_reason": "",
+      "audit_trail": [
+        {
+          "action": "送出申請",
+          "by": "超級管理者 (陳總監)",
+          "by_role": "admin",
+          "at": "2026-09-18T17:45:27.815Z",
+          "note": "同仁提交零用金申請"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-09-19T00:33:31.997Z",
+      "created_at": "2026-09-18T17:45:27.815Z",
+      "updated_at": "2026-09-19T00:33:31.997Z"
+    }
+  ],
+  "config": {
+    "system_name": "企業每月零用金申請與核銷系統",
+    "google_sheet_enabled": true,
+    "google_spreadsheet_id": "",
+    "google_service_account_email": "",
+    "google_sheet_name": "零用金申請明細",
+    "last_sync_time": "2026-09-19T00:53:32.720Z",
+    "monthly_budget_warning": 50000,
+    "google_gas_url": "https://script.google.com/macros/s/AKfycbxTdgqw22UF8KZCYCXlGo7SuwV7Q_nBWBC9wT6OJqEBIjb6Nea0V5bFSiy2JlMbSeMDxg/exec",
+    "google_drive_folder_id": "1TlGIxQu8ZIso3wL8wzAbDpwNwxIFOHut"
+  },
+  "user_applications": [
+    {
+      "id": "app_1789780126185_8r8oo",
+      "status": "pending",
+      "created_at": "2026-09-19T01:08:46.185Z",
+      "username": "444",
+      "password_hash": "$2a$10$1g5fl0rke1CnhpO3qUJRau6c..ZMhGaYQPB4B5CQmqhomtPHt3I8S",
+      "plain_password": "123456",
+      "name": "444",
+      "department": "業務二部",
+      "requested_role": "employee",
+      "reason": "",
+      "role": "employee",
+      "apply_reason": ""
+    },
+    {
+      "id": "app_1789780116124_jllcl",
+      "status": "pending",
+      "created_at": "2026-09-19T01:08:36.124Z",
+      "username": "333",
+      "password_hash": "$2a$10$w26dTq324Riadorh2zHtou1On0xiOeZJLWIUw2MTZGITsVOM5nHRe",
+      "plain_password": "123456",
+      "name": "33",
+      "department": "財務部",
+      "requested_role": "employee",
+      "reason": "",
+      "role": "employee",
+      "apply_reason": ""
+    },
+    {
+      "id": "app_1789780090495_wqbsc",
+      "status": "pending",
+      "created_at": "2026-09-19T01:08:10.495Z",
+      "username": "222",
+      "password_hash": "$2a$10$P5QadjhJod2aRVJFSXcF3eFrc.dAO/N8nJrrkfkD0Nqa98Rz07Fu2",
+      "plain_password": "123456",
+      "name": "456",
+      "department": "其他單位",
+      "requested_role": "employee",
+      "reason": "",
+      "role": "employee",
+      "apply_reason": ""
+    },
+    {
+      "id": "app_1789780077386_m5aiz",
+      "status": "pending",
+      "created_at": "2026-09-19T01:07:57.386Z",
+      "username": "123",
+      "password_hash": "$2a$10$WLWYq.rg6oOugFzIkUY9yuuSjIHHBKT7jGhGI95CdeWFMdAfQKnyy",
+      "plain_password": "123456",
+      "name": "45",
+      "department": "業務一部",
+      "requested_role": "employee",
+      "reason": "",
+      "role": "employee",
+      "apply_reason": ""
+    },
+    {
+      "id": "app_1789779430008_mpu7q",
+      "status": "pending",
+      "created_at": "2026-09-19T00:57:10.008Z",
+      "username": "sandy",
+      "password_hash": "$2a$10$/Y79dfljvGmdaAneFId9Ue/gNIPtcV9JYO4Sq/Wa7D4fwouwUv18G",
+      "plain_password": "123456",
+      "name": "王曉明",
+      "department": "業務一部",
+      "requested_role": "employee",
+      "reason": "",
+      "role": "employee",
+      "apply_reason": ""
+    },
+    {
+      "id": "app_1789779179852_w1xec",
+      "status": "pending",
+      "created_at": "2026-09-19T00:52:59.852Z",
+      "username": "emp_pwd_1789779179763",
+      "password_hash": "$2a$10$rnryaNid7IiRI21cUjsykOym4qZRW8NGwTPfgFVTagem0wB3TVzNK",
+      "plain_password": "mySecretPassword999",
+      "name": "密碼同步測試員",
+      "department": "資訊技術部",
+      "requested_role": "employee",
+      "reason": "測試 Google Sheet 密碼欄位同步",
+      "role": "employee",
+      "apply_reason": "測試 Google Sheet 密碼欄位同步"
+    },
+    {
+      "id": "app_1789778828693_1ue7s",
+      "status": "pending",
+      "created_at": "2026-09-19T00:47:08.693Z",
+      "username": "terry",
+      "password_hash": "$2a$10$QzbWzDqI/tJI0fce7AsbWOn8Pcf9mm2URpUkYFXZifUF2ODU/qwc.",
+      "name": "李泰叡",
+      "department": "業務一部",
+      "requested_role": "employee",
+      "reason": "",
+      "role": "employee",
+      "apply_reason": ""
+    },
+    {
+      "id": "app_1789778746515_oc6am",
+      "status": "pending",
+      "created_at": "2026-09-19T00:45:46.515Z",
+      "username": "new_emp_1789778746366",
+      "password_hash": "$2a$10$V4ubrMb.crPqZv3CvRbj/OkG/reUD3yJITDRq25SJsbwbXmab2TD.",
+      "name": "周業務",
+      "department": "業務二部",
+      "requested_role": "employee",
+      "reason": "新到職同仁申請零用金權限",
+      "role": "employee",
+      "apply_reason": "新到職同仁申請零用金權限"
+    },
+    {
+      "id": "app_1789778719301_p61u6",
+      "status": "pending",
+      "created_at": "2026-09-19T00:45:19.301Z",
+      "username": "new_emp_1789778719145",
+      "password_hash": "$2a$10$F2Hh5.dVgSAbNorOplMq4u5lZuIIS7CPGNwY27wNpmxG2Lq1l8nZi",
+      "name": "周業務",
+      "department": "業務二部",
+      "requested_role": "employee",
+      "reason": "新到職同仁申請零用金權限"
+    },
+    {
+      "id": "app_1789778430893_tqj5h",
+      "status": "approved",
+      "created_at": "2026-09-19T00:40:30.893Z",
+      "username": "sheet_user_1789778430755",
+      "password_hash": "$2a$10$Ck2yRbfz7uNC.KfbKfJs6ekikq5wMXwrVt014r0ThLMa4vkZpj5Hu",
+      "name": "張雲端",
+      "department": "資訊科技部",
+      "requested_role": "employee",
+      "reason": "",
+      "reviewed_by": "超級管理者 (陳總監)",
+      "reviewed_at": "2026-09-19T00:40:31.296Z"
+    },
+    {
+      "id": "app_1789778003977_dp3y5",
+      "status": "approved",
+      "created_at": "2026-09-19T00:33:23.977Z",
+      "username": "user_1789778003858",
+      "password_hash": "$2a$10$S4vMBDeDlDgdnK7MI5TfBORMEkRmRSdXgYcUiP1YNA/7oLftqVruK",
+      "name": "林測試",
+      "department": "行銷部",
+      "requested_role": "employee",
+      "reason": "",
+      "reviewed_by": "超級管理者 (陳總監)",
+      "reviewed_at": "2026-09-19T00:33:24.124Z"
+    },
+    {
+      "id": "app_1789777987653_wm6r4",
+      "status": "approved",
+      "created_at": "2026-09-19T00:33:07.653Z",
+      "username": "user_1789777987553",
+      "password_hash": "$2a$10$oWjAzEXDbnLhVuqJ8kaaQeBx5yoZifWhKjClcxyLFm7f1zALjOI6W",
+      "name": "林測試",
+      "department": "行銷部",
+      "requested_role": "employee",
+      "reason": "",
+      "reviewed_by": "超級管理者 (陳總監)",
+      "reviewed_at": "2026-09-19T00:33:07.752Z"
+    },
+    {
+      "id": "app_1789777973417_cfsuu",
+      "status": "approved",
+      "created_at": "2026-09-19T00:32:53.417Z",
+      "username": "user_1789777973304",
+      "password_hash": "$2a$10$kTrVdCdNRtJfMy0NJpcnFuy6maQa5xXrX7BXxWMamdr.rKJouFagO",
+      "name": "林測試",
+      "department": "行銷部",
+      "requested_role": "employee",
+      "reason": "",
+      "reviewed_by": "超級管理者 (陳總監)",
+      "reviewed_at": "2026-09-19T00:32:53.521Z"
+    },
+    {
+      "id": "app_1789777950264_cglxd",
+      "status": "approved",
+      "created_at": "2026-09-19T00:32:30.264Z",
+      "username": "user_1789777950100",
+      "password_hash": "$2a$10$VSWoX2PWI6vEnyx3Kn/v7OXgmcLblXzJU9VUFm6K1PHUHc6dccA0W",
+      "name": "林測試",
+      "department": "行銷部",
+      "requested_role": "employee",
+      "reason": "",
+      "reviewed_by": "超級管理者 (陳總監)",
+      "reviewed_at": "2026-09-19T00:32:30.380Z"
+    }
+  ]
+};

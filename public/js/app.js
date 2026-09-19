@@ -347,9 +347,12 @@
     checkSheetsStatus();
   }
 
-  // 取得後端伺服器 Base URL (自動辨識 Live Server 5500、8080 或本地 file:// 協定)
+  // 取得後端伺服器 Base URL (自動辨識 GitHub Pages、Live Server 5500、8080 或本地 file:// 協定)
   function getServerBaseUrl() {
     if (typeof window === 'undefined') return 'http://localhost:3050';
+    if (window.api && window.api.isCloudMode) {
+      return '';
+    }
     if (window.location.protocol === 'file:') {
       return 'http://localhost:3050';
     }
@@ -363,19 +366,22 @@
   // 取得完整發票憑證網址 (智慧處理後端代理端點、本機檔案、Google Drive 與 Base64)
   function getFullReceiptUrl(url, claimId = null) {
     if (!url) return '';
+
+    if (url.startsWith('data:image') || url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+
+    // 雲端直連模式 (GitHub Pages 靜態目錄讀取)
+    if (window.api && window.api.isCloudMode) {
+      const cleanPath = url.replace(/^\/?(public\/)?uploads\//, '');
+      return `uploads/${cleanPath}`;
+    }
+
     const serverBase = getServerBaseUrl();
 
     // 若有提供 claimId 且非純 Base64，優先使用後端二進位專屬代理端點 (解決 Live Server 404 與 Drive 預覽問題)
     if (claimId && !url.startsWith('data:image')) {
       return `${serverBase}/api/claims/${claimId}/receipt`;
-    }
-
-    if (url.startsWith('data:image')) {
-      return url;
-    }
-
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
     }
 
     return serverBase + (url.startsWith('/') ? url : '/' + url);
@@ -1932,9 +1938,9 @@
         }
       } catch (err) {
         console.error('Login error:', err);
-        const msg = err.message && err.message.includes('Failed to fetch')
+        const msg = (err.message && err.message.includes('Failed to fetch') && !api.isCloudMode)
           ? '無法連線至後端伺服器，請確認後端已啟動 (http://localhost:3050)'
-          : (err.message || '登入失敗，請確認帳號與密碼');
+          : (err.message || '登入失敗，請確認帳號與密碼 (預設: terry / terry123)');
         showToast(msg, 'error');
       } finally {
         dom.btnLoginSubmit.disabled = false;
