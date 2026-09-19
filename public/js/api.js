@@ -288,7 +288,7 @@ class ApiService {
       }
 
       if (!matched) {
-        throw new Error('帳號或密碼錯誤 (預設密碼範例: terry123, admin123, acc123, emp123)');
+        throw new Error('帳號或密碼錯誤');
       }
 
       const mockToken = `pc_cloud_${matched.role}_${Date.now()}`;
@@ -331,13 +331,7 @@ class ApiService {
       }
       return {
         success: true,
-        users: [
-          { username: 'terry', role: 'admin', role_name: '超級管理者 (Terry 總監)', department: '總管理處', hint: 'terry123' },
-          { username: 'admin', role: 'admin', role_name: '系統管理者 (陳總監)', department: '管理部', hint: 'admin123' },
-          { username: 'accountant', role: 'accountant', role_name: '會計審核 (王會計)', department: '財務部', hint: 'acc123' },
-          { username: 'employee', role: 'employee', role_name: '業務同仁 (張小明)', department: '業務一部', hint: 'emp123' },
-          { username: 'designer', role: 'employee', role_name: '設計同仁 (李小美)', department: '設計研發組', hint: 'emp123' }
-        ]
+        users: []
       };
     },
 

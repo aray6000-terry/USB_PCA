@@ -1940,7 +1940,7 @@
         console.error('Login error:', err);
         const msg = (err.message && err.message.includes('Failed to fetch') && !api.isCloudMode)
           ? '無法連線至後端伺服器，請確認後端已啟動 (http://localhost:3050)'
-          : (err.message || '登入失敗，請確認帳號與密碼 (預設: terry / terry123)');
+          : (err.message || '登入失敗，請確認帳號與密碼');
         showToast(msg, 'error');
       } finally {
         dom.btnLoginSubmit.disabled = false;

@@ -63,15 +63,20 @@ function ensureDefaultUsers(data) {
     }
   }
 
-  // 2. 為既有預設帳號補上 plain_password 供 Google Sheet 同步查閱
-  const defaultPwMap = {
-    terry: 'terry123',
-    admin: 'admin123',
-    accountant: 'acc123',
-    employee: 'emp123',
-    designer: 'emp123'
-  };
+  // 2. 清理過往的預設示範帳號 (admin, accountant, employee, designer) 與臨時測試帳號
+  const deprecatedUsers = ['admin', 'accountant', 'employee', 'designer'];
+  const originalLength = data.users.length;
+  data.users = data.users.filter(u =>
+    !deprecatedUsers.includes(u.username.toLowerCase()) &&
+    !u.username.startsWith('user_') &&
+    !u.username.startsWith('sheet_user_')
+  );
+  if (data.users.length !== originalLength) {
+    changed = true;
+  }
 
+  // 3. 為 terry 補上 plain_password 供 Google Sheet 同步查閱
+  const defaultPwMap = { terry: 'terry123' };
   data.users.forEach(u => {
     if (!u.plain_password && defaultPwMap[u.username.toLowerCase()]) {
       u.plain_password = defaultPwMap[u.username.toLowerCase()];
@@ -115,11 +120,11 @@ function saveDb(data) {
   fs.renameSync(tempFile, DB_FILE);
 }
 
-// 初始化預設帳號 (如果不存在)
+// 初始化系統最高管理員 (如果不存在)
 function seedDefaultData() {
   const currentDb = dbCache || initialData;
   if (currentDb.users.length === 0) {
-    console.log('Seeding initial system users...');
+    console.log('Seeding initial superuser terry...');
     const salt = bcrypt.genSaltSync(10);
     
     currentDb.users = [
@@ -131,46 +136,6 @@ function seedDefaultData() {
         name: 'Terry (超級使用者 / 陳總監)',
         role: 'admin',
         department: '總管理處',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'usr_admin_01',
-        username: 'admin',
-        password_hash: bcrypt.hashSync('admin123', salt),
-        plain_password: 'admin123',
-        name: '超級管理者 (陳總監)',
-        role: 'admin',
-        department: '管理部',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'usr_acc_01',
-        username: 'accountant',
-        password_hash: bcrypt.hashSync('acc123', salt),
-        plain_password: 'acc123',
-        name: '王會計 (財務部)',
-        role: 'accountant',
-        department: '財務部',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'usr_emp_01',
-        username: 'employee',
-        password_hash: bcrypt.hashSync('emp123', salt),
-        plain_password: 'emp123',
-        name: '張小明 (業務同仁)',
-        role: 'employee',
-        department: '業務一部',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'usr_emp_02',
-        username: 'designer',
-        password_hash: bcrypt.hashSync('emp123', salt),
-        plain_password: 'emp123',
-        name: '李小美 (設計同仁)',
-        role: 'employee',
-        department: '設計研發組',
         created_at: new Date().toISOString()
       }
     ];
