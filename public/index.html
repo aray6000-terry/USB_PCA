@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企業每月零用金申請與核銷系統</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260919_04">
+</head>
+<body>
+  <div id="app">
+    <!-- 登入介面 (未登入時顯示) -->
+    <div id="login-view" class="view active">
+      <!-- 頂部輕量企業標頭 -->
+      <div class="login-top-bar">
+        <div class="top-bar-brand">
+          <svg class="top-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          <span class="top-bar-name">企業每月零用金系統</span>
+          <span class="top-bar-tag">Cloud Sync</span>
+        </div>
+        <div class="top-bar-secure">
+          <span class="secure-dot"></span>
+          <span>端到端資安加密隔離</span>
+        </div>
+      </div>
+
+      <!-- 登入主卡片 (俐落居中偏上，徹底告別頂部空白) -->
+      <div class="login-box-container">
+        <div class="login-card glass-panel">
+          <!-- 登入 / 帳號申請 分頁切換 -->
+          <div class="auth-tabs">
+            <button type="button" class="auth-tab-btn active" id="tab-btn-login">
+              <span>系統身分登入</span>
+            </button>
+            <button type="button" class="auth-tab-btn" id="tab-btn-register">
+              <span>申請新帳號 ✨</span>
+            </button>
+          </div>
+
+          <!-- 1. 系統登入區塊 -->
+          <div id="auth-panel-login" class="auth-panel active">
+            <div class="login-card-header">
+              <div class="login-brand-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <h2>系統身分登入</h2>
+              <p>請輸入企業同仁或管理人員帳號密碼</p>
+            </div>
+
+            <form id="login-form">
+              <div class="form-group">
+                <label for="login-username">帳號 (Username)</label>
+                <div class="input-icon-wrapper">
+                  <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <input type="text" id="login-username" placeholder="請輸入帳號" required autocomplete="username">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="login-password">密碼 (Password)</label>
+                <div class="input-icon-wrapper">
+                  <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <input type="password" id="login-password" placeholder="請輸入密碼" required autocomplete="current-password">
+                </div>
+              </div>
+
+              <button type="submit" id="btn-submit-login" class="btn btn-primary btn-block">
+                <span>登入系統</span>
+                <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 14px;">
+              <button type="button" id="link-goto-register" class="btn-text-link" style="font-size: 13px; color: var(--primary-light); background: none; border: none; cursor: pointer;">
+                尚未開通企業帳號？點此提交帳號開通申請 ➔
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. 帳號開通申請區塊 -->
+          <div id="auth-panel-register" class="auth-panel">
+            <div class="login-card-header">
+              <div class="login-brand-logo" style="background: rgba(16, 185, 129, 0.15); color: #10B981; border-color: rgba(16, 185, 129, 0.3);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <line x1="20" y1="8" x2="20" y2="14" />
+                  <line x1="23" y1="11" x2="17" y2="11" />
+                </svg>
+              </div>
+              <h2>新進同仁帳號申請</h2>
+              <p>提交後將送交超級使用者 (陳總監) 審核開通</p>
+            </div>
+
+            <form id="register-form">
+              <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                  <label for="reg-username">登入帳號 <span class="required">*</span></label>
+                  <input type="text" id="reg-username" class="form-control" placeholder="例: allen, sandy" required autocomplete="username">
+                  <span class="input-hint">至少 3 碼英數字</span>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label for="reg-name">真實姓名 <span class="required">*</span></label>
+                  <input type="text" id="reg-name" class="form-control" placeholder="例: 林小明" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                  <label for="reg-password">登入密碼 <span class="required">*</span></label>
+                  <input type="password" id="reg-password" class="form-control" placeholder="設定密碼 (至少6碼)" required autocomplete="new-password">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label for="reg-password-confirm">確認密碼 <span class="required">*</span></label>
+                  <input type="password" id="reg-password-confirm" class="form-control" placeholder="再次輸入密碼" required autocomplete="new-password">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                  <label for="reg-department">服務部門 <span class="required">*</span></label>
+                  <select id="reg-department" class="form-control" required>
+                    <option value="">-- 請選擇所屬部門 --</option>
+                    <option value="業務一部">業務一部</option>
+                    <option value="業務二部">業務二部</option>
+                    <option value="設計研發組">設計研發組</option>
+                    <option value="技術工程部">技術工程部</option>
+                    <option value="行銷企劃部">行銷企劃部</option>
+                    <option value="財務部">財務部</option>
+                    <option value="行政總務部">行政總務部</option>
+                    <option value="其他單位">其他單位</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label for="reg-role">申請角色身分 <span class="required">*</span></label>
+                  <select id="reg-role" class="form-control" required>
+                    <option value="employee" selected>一般同仁 (僅申報個人零用金)</option>
+                    <option value="accountant">財務會計 (審核/撥款/報表)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="reg-reason">申請事由 / 業務職掌</label>
+                <textarea id="reg-reason" class="form-control" rows="2" placeholder="例: 9月份新進業務同仁，需使用系統申報交通與差旅零用金..."></textarea>
+              </div>
+
+              <button type="submit" id="btn-submit-register" class="btn btn-success btn-block">
+                <span>🚀 送出帳號申請</span>
+              </button>
+
+              <div style="text-align: center; margin-top: 12px;">
+                <button type="button" id="link-back-to-login" class="btn-text-link" style="font-size: 13px; color: var(--text-muted); background: none; border: none; cursor: pointer;">
+                  ← 已有帳號？返回登入畫面
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="security-notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>端到端授權驗證與防篡改保護已啟用，後端憑證與私鑰嚴格隔離</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 系統主儀表板 (登入後顯示) -->
+    <div id="main-view" class="view">
+      <!-- 頂部導覽列 (貼頂無縫，不浪費垂直空間) -->
+      <header class="main-header glass-panel">
+        <div class="header-left">
+          <div class="header-logo">
+            <svg class="header-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            <span class="header-logo-title">零用金申請與核銷系統</span>
+          </div>
+
+          <!-- Google Sheets 連線狀態指示標籤 -->
+          <div id="sheets-indicator" class="sheets-indicator" title="點擊檢視 Google Sheets 狀態與同步">
+            <span class="indicator-dot"></span>
+            <span class="indicator-text">Google Sheets: 連線檢查中</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- 當前使用者資訊卡 -->
+          <div class="user-profile-badge">
+            <div class="user-avatar" id="current-user-avatar">管</div>
+            <div class="user-meta">
+              <div class="user-name-role">
+                <span id="current-user-name" class="user-name">載入中...</span>
+                <span id="current-user-role-badge" class="role-badge">管理者</span>
+              </div>
+              <span id="current-user-dept" class="user-dept">管理部</span>
+            </div>
+          </div>
+
+          <!-- 帳號申請審核按鈕 (僅超級管理者可見) -->
+          <button type="button" id="btn-user-applications" class="btn btn-outline btn-sm" title="審核新同仁帳號開通申請" style="display: none; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>帳號審核</span>
+            <span id="badge-pending-apps-count" class="badge-pill-count" style="display: none;">0</span>
+          </button>
+
+          <!-- 登出按鈕 -->
+          <button id="btn-logout" class="btn btn-outline-danger btn-sm" title="登出系統">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>登出</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- 主要內容區 -->
+      <main class="main-content">
+        <!-- 緊湊型 KPI 統計橫條 (極致省空間，讓表格立即呈現在首屏黃金位置) -->
+        <section class="compact-kpi-bar glass-panel">
+          <div class="kpi-item">
+            <div class="kpi-icon-mini icon-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div class="kpi-text">
+              <span class="kpi-label">當月申請總額</span>
+              <div class="kpi-value-row">
+                <span class="kpi-val" id="stat-total-amount">NT$ 0</span>
+                <span class="kpi-sub" id="stat-total-count">0 筆</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-divider"></div>
+
+          <div class="kpi-item">
+            <div class="kpi-icon-mini icon-warning">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div class="kpi-text">
+              <span class="kpi-label">待審核金額</span>
+              <div class="kpi-value-row">
+                <span class="kpi-val val-warning" id="stat-pending-amount">NT$ 0</span>
+                <span class="kpi-sub" id="stat-pending-count">0 筆待審</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-divider"></div>
+
+          <div class="kpi-item">
+            <div class="kpi-icon-mini icon-success">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <div class="kpi-text">
+              <span class="kpi-label">已核准 / 撥款</span>
+              <div class="kpi-value-row">
+                <span class="kpi-val val-success" id="stat-disbursed-amount">NT$ 0</span>
+                <span class="kpi-sub" id="stat-disbursed-count">0 筆完成</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-divider"></div>
+
+          <div class="kpi-item kpi-scope">
+            <div class="kpi-icon-mini icon-info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div class="kpi-text">
+              <span class="kpi-label">資料檢視範圍</span>
+              <div class="kpi-value-row">
+                <span class="kpi-val val-info" id="stat-scope-title">全公司資料</span>
+                <span class="kpi-sub" id="stat-scope-desc">最高權限</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 費用類別精巧標籤條 -->
+        <section class="category-breakdown-card glass-panel">
+          <div class="breakdown-header">
+            <span class="breakdown-title">費用類別支出分析</span>
+            <span class="breakdown-month-tag" id="breakdown-month-tag">當前月份</span>
+          </div>
+          <div class="category-chips-summary" id="category-chips-summary">
+            <!-- 動態生成各類別小計與色彩點 -->
+          </div>
+        </section>
+
+        <!-- 操作與篩選工具列 -->
+        <section class="toolbar-panel glass-panel">
+          <div class="toolbar-row">
+            <!-- 搜尋與日期篩選 -->
+            <div class="toolbar-group">
+              <div class="search-input-wrapper">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="filter-keyword" placeholder="搜尋項目、單號、備註或同仁...">
+              </div>
+
+              <div class="date-select-wrapper">
+                <label for="filter-month">月份:</label>
+                <input type="month" id="filter-month">
+              </div>
+
+              <div class="category-select-wrapper">
+                <label for="filter-category">類別:</label>
+                <select id="filter-category">
+                  <option value="all">全部類別</option>
+                  <option value="交通">交通</option>
+                  <option value="餐食">餐食</option>
+                  <option value="設備">設備</option>
+                  <option value="交際費">交際費</option>
+                  <option value="清潔及庶務用品">清潔及庶務用品</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+
+              <div class="status-select-wrapper">
+                <label for="filter-status">狀態:</label>
+                <select id="filter-status">
+                  <option value="all">全部狀態</option>
+                  <option value="pending">待會計初審</option>
+                  <option value="acc_approved">待主管終審 (會計已核)</option>
+                  <option value="approved">主管已核准 (待撥款)</option>
+                  <option value="disbursed">已撥款核銷</option>
+                  <option value="rejected">已退回</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 右側主要動作按鈕 -->
+            <div class="toolbar-actions">
+              <!-- AI 智能發票拍照自動辨識建單按鈕 -->
+              <button type="button" id="btn-open-ai-ocr-modal" class="btn btn-ai-scan" title="上傳照片自動辨識一張或多張發票/收據，一鍵批次建單">
+                <span class="ai-sparkle-icon">✨</span>
+                <span>AI 發票拍照自動建單</span>
+              </button>
+
+              <button type="button" id="btn-open-create-modal" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>填寫零用金申請</span>
+              </button>
+
+              <!-- 匯出報表下拉按鈕 -->
+              <div class="dropdown-wrapper">
+                <button id="btn-export-dropdown" class="btn btn-success">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>匯出報表 ▾</span>
+                </button>
+                <div class="dropdown-menu" id="export-menu">
+                  <button type="button" id="btn-export-excel" class="dropdown-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="9" y1="3" x2="9" y2="21"></line>
+                      <line x1="15" y1="3" x2="15" y2="21"></line>
+                    </svg>
+                    <span>匯出 Excel 報表 (.xlsx)</span>
+                  </button>
+                  <button type="button" id="btn-export-csv" class="dropdown-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    <span>匯出 CSV 檔案 (.csv)</span>
+                  </button>
+                  <button type="button" id="btn-export-receipts-a4" class="dropdown-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span>🖨️ 憑證照片 A4 報表 (列印/PDF)</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 憑證照片 A4 列印快捷按鈕 -->
+              <button id="btn-quick-receipts-a4" class="btn btn-purple" title="自動排版當前發票憑證至 A4 格式，排滿自動分頁，支援列印或存為 PDF">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>憑證 A4 列印</span>
+              </button>
+
+              <!-- Google Sheets 同步與設定按鈕 (會計與超級使用者可見) -->
+              <button id="btn-sheets-panel" class="btn btn-info" title="Google Sheets 串接與同步中心">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                <span>Google Sheets 同步</span>
+              </button>
+
+              <!-- 金額異動 Log 檔按鈕 (會計與超級使用者專屬) -->
+              <button id="btn-approval-logs" class="btn btn-warning" title="查閱所有核准金額異動與審核實體 Log 檔 (approval_changes.log)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>📜 金額異動 Log 檔</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 申請單資料清單表格 -->
+        <section class="table-container glass-panel">
+          <div class="table-header-bar">
+            <div class="table-header-title">
+              <h3>零用金申請明細紀錄</h3>
+              <span id="table-record-count" class="badge-count">共 0 筆</span>
+            </div>
+            <button id="btn-refresh-list" class="btn btn-icon btn-sm" title="重新整理清單">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>單號 / 日期</th>
+                  <th>申請同仁</th>
+                  <th>類別</th>
+                  <th>申請項目</th>
+                  <th class="text-right">金額 (NT$)</th>
+                  <th>發票/收據</th>
+                  <th>備註</th>
+                  <th>狀態</th>
+                  <th class="text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody id="claims-tbody">
+                <!-- 動態注入資料行 -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 無資料或載入狀態提示 -->
+          <div id="empty-state" class="empty-state hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <p class="empty-title">查無符合條件之零用金申請</p>
+            <p class="empty-desc">請調整篩選條件，或點擊上方「填寫零用金申請」新增單據</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal 1: 填寫 / 編輯零用金申請 -->
+    <div id="modal-claim" class="modal-overlay">
+      <div class="modal-card glass-panel">
+        <div class="modal-header">
+          <h3 id="modal-claim-title">填寫零用金申請單</h3>
+          <button class="btn-close-modal" data-close="modal-claim">&times;</button>
+        </div>
+
+        <form id="form-claim">
+          <input type="hidden" id="claim-form-id">
+          
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="claim-date">消費日期 <span class="required">*</span></label>
+              <input type="date" id="claim-date" required>
+            </div>
+            <div class="form-group flex-1">
+              <label for="claim-category">費用類別 <span class="required">*</span></label>
+              <select id="claim-category" required>
+                <option value="" disabled selected>請選擇類別</option>
+                <option value="交通">交通 (計程車、高鐵、客運、油資)</option>
+                <option value="餐食">餐食 (加班誤餐、外送餐盒)</option>
+                <option value="設備">設備 (轉接線、辦公週邊零組件)</option>
+                <option value="交際費">交際費 (客戶商務餐敘、伴手禮)</option>
+                <option value="清潔及庶務用品">清潔及庶務用品 (洗碗精、紙巾)</option>
+                <option value="其他">其他 (郵資、印鑑等雜項)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="claim-item">申請項目說明 <span class="required">*</span></label>
+            <input type="text" id="claim-item" placeholder="例：拜訪台積電廠商計程車資往返" required maxlength="100">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="claim-amount">申請金額 (新台幣 NT$) <span class="required">*</span></label>
+              <div class="amount-input-wrapper">
+                <span class="currency-prefix">NT$</span>
+                <input type="number" id="claim-amount" placeholder="0" min="1" step="1" required>
+              </div>
+              <div id="amount-verbal-preview" class="amount-verbal">新台幣 零 元整</div>
+            </div>
+            <div class="form-group flex-1">
+              <label for="claim-receipt-no">發票或收據號碼</label>
+              <input type="text" id="claim-receipt-no" placeholder="例：UB-12345678 (選填)">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="claim-notes">備註說明</label>
+            <textarea id="claim-notes" rows="2" placeholder="說明事由或備註說明 (選填)..."></textarea>
+          </div>
+
+          <!-- 憑證收據相片上傳 -->
+          <div class="form-group">
+            <label>憑證或發票照片 (選填)</label>
+            <div class="receipt-upload-zone" id="receipt-upload-zone">
+              <input type="file" id="claim-receipt-file" accept="image/*" class="file-hidden">
+              <div class="upload-prompt" id="upload-prompt">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span>點擊或拖曳上傳發票/收據照片</span>
+                <span class="upload-hint">支援 JPG、PNG，圖片將安全加密傳輸</span>
+              </div>
+              <div class="receipt-preview-wrapper hidden" id="receipt-preview-wrapper">
+                <img id="receipt-preview-img" src="" alt="憑證預覽">
+                <button type="button" id="btn-remove-receipt" class="btn-remove-photo">&times;</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-close="modal-claim">取消</button>
+            <button type="submit" class="btn btn-primary">
+              <span id="btn-claim-submit-text">確認送出申請</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal 2: 審核與撥款操作 (會計與超級使用者專用) -->
+    <div id="modal-review" class="modal-overlay">
+      <div class="modal-card glass-panel modal-md">
+        <div class="modal-header">
+          <h3 id="modal-review-title">零用金申請審核與金額核定</h3>
+          <button class="btn-close-modal" data-close="modal-review">&times;</button>
+        </div>
+
+        <div class="review-claim-summary">
+          <div class="summary-row">
+            <span class="label">申請單號:</span>
+            <span id="review-claim-no" class="val-mono">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">申請同仁:</span>
+            <span id="review-user-name" class="val">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">申請項目:</span>
+            <span id="review-item-name" class="val">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">申報金額:</span>
+            <span id="review-amount" class="val val-amount">-</span>
+          </div>
+          <div class="summary-row" id="review-receipt-row">
+            <span class="label">發票憑證:</span>
+            <span id="review-receipt-col" class="val">
+              <button type="button" id="btn-review-view-receipt" style="border:1px solid rgba(59,130,246,0.4);background:rgba(59,130,246,0.18);color:#93C5FD;padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-weight:600;">🔍 查看發票照片</button>
+            </span>
+          </div>
+        </div>
+
+        <!-- 批准金額調整區域 (限會計與超級使用者) -->
+        <div class="form-group review-approved-group">
+          <div class="approved-label-bar">
+            <label for="review-approved-amount">
+              <strong>批准金額 / 實批金額 (NT$)</strong>
+              <span class="badge-role-tag">會計/管理員核定</span>
+            </label>
+            <button type="button" id="btn-review-reset-amount" class="btn-text-action" title="還原為原申報金額">
+              ↺ 全額核准 (還原原申報)
+            </button>
+          </div>
+          <div class="approved-input-wrap">
+            <div class="prefix-input-box">
+              <span class="prefix-text">NT$</span>
+              <input type="number" id="review-approved-amount" class="form-control form-control-lg input-approved-highlight" min="0" step="1" placeholder="輸入核准金額...">
+            </div>
+            <div id="review-diff-tag" class="review-diff-tag diff-tag-equal">
+              <span>全額核准</span>
+            </div>
+          </div>
+          <div class="approved-verbal-preview">
+            <span class="verbal-caption">大寫:</span>
+            <span id="review-amount-verbal" class="verbal-text">新臺幣零元整</span>
+          </div>
+        </div>
+
+        <div class="form-group" id="reject-reason-group">
+          <label for="review-reason">審核意見 / 金額調整原因 (退件或調整金額時記錄於 Log 檔)</label>
+          <textarea id="review-reason" rows="3" placeholder="請填寫審核意見或修改原因備註（將同步記入伺服器實體 Log 檔）..."></textarea>
+        </div>
+
+        <div class="review-log-link-bar">
+          <button type="button" id="btn-open-logs-from-review" class="btn-link-log">
+            📋 查看本系統金額異動 Log 檔 (approval_changes.log)
+          </button>
+        </div>
+
+        <div id="review-workflow-banner" class="review-workflow-banner" style="margin-bottom: 14px; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; display: flex; align-items: center; gap: 8px;">
+          <!-- 動態由 JavaScript 注入初審/終審提示 -->
+        </div>
+
+        <div class="modal-footer review-actions">
+          <button type="button" id="btn-action-reject" class="btn btn-danger">
+            <span>審核退回</span>
+          </button>
+          <button type="button" id="btn-action-approve" class="btn btn-primary">
+            <span>審核通過</span>
+          </button>
+          <button type="button" id="btn-action-disburse" class="btn btn-success">
+            <span>完成撥款核銷</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: 金額異動稽核 Log 檔檢視彈窗 (會計與超級使用者專用) -->
+    <div id="modal-audit-logs" class="modal-overlay">
+      <div class="modal-card glass-panel modal-lg">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 22px;">📜</span>
+            <div>
+              <h3 style="margin: 0; font-size: 17px; font-weight: 600;">金額異動與審核稽核 Log 檔</h3>
+              <div id="audit-log-file-meta" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                實體路徑: <code>data/logs/approval_changes.log</code>
+              </div>
+            </div>
+          </div>
+          <button class="btn-close-modal" data-close="modal-audit-logs">&times;</button>
+        </div>
+
+        <div class="audit-log-controls">
+          <div class="search-input-wrapper" style="flex: 1;">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="filter-audit-log-kw" placeholder="篩選單號、操作人、動作、原因備註...">
+          </div>
+          <button type="button" id="btn-refresh-audit-logs" class="btn btn-outline btn-sm">🔄 重新整理</button>
+          <button type="button" id="btn-download-audit-logs" class="btn btn-primary btn-sm">📥 下載實體 Log 檔</button>
+        </div>
+
+        <div class="audit-logs-viewport">
+          <div id="audit-logs-container" class="audit-logs-container">
+            <div class="audit-log-loading">載入日誌中...</div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="justify-content: space-between; align-items: center;">
+          <div id="audit-logs-count-summary" style="font-size: 12px; color: var(--text-muted);">
+            顯示最新 0 筆 Log 紀錄
+          </div>
+          <button type="button" class="btn btn-outline" data-close="modal-audit-logs">關閉</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: 同仁帳號開通申請審核 (僅限超級使用者) -->
+    <div id="modal-user-applications" class="modal-overlay">
+      <div class="modal-card glass-panel modal-lg">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 22px;">👥</span>
+            <div>
+              <h3 style="margin: 0; font-size: 17px; font-weight: 600;">新進同仁帳號開通審核</h3>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                審核同仁自主提交之帳號開通申請，核准後即刻加入使用者名冊並賦予權限
+              </div>
+            </div>
+          </div>
+          <button class="btn-close-modal" data-close="modal-user-applications">&times;</button>
+        </div>
+
+        <div class="user-apps-toolbar">
+          <div class="user-apps-filter-tabs">
+            <button type="button" class="user-app-tab active" data-status="all">全部申請</button>
+            <button type="button" class="user-app-tab" data-status="pending">待審核</button>
+            <button type="button" class="user-app-tab" data-status="approved">已開通</button>
+            <button type="button" class="user-app-tab" data-status="rejected">已拒絕</button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btn-sync-users-sheet" class="btn btn-sm btn-success" title="將人員權限名冊完整同步至 Google 試算表">
+              📊 同步至 Google Sheet
+            </button>
+            <button type="button" id="btn-refresh-user-apps" class="btn btn-outline btn-sm">🔄 重新整理</button>
+          </div>
+        </div>
+
+        <div class="user-apps-viewport">
+          <div id="user-apps-list" class="user-apps-list">
+            <div class="loading-state">載入申請清單中...</div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" data-close="modal-user-applications">關閉名冊</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 3: Google Sheets 串接與同步中心 -->
+    <div id="modal-sheets" class="modal-overlay">
+      <div class="modal-card glass-panel modal-lg">
+        <div class="modal-header">
+          <h3>Google Sheets 串接與同步設定</h3>
+          <button class="btn-close-modal" data-close="modal-sheets">&times;</button>
+        </div>
+
+        <div class="sheets-panel-body">
+          <!-- 頂部即時狀態橫幅 -->
+          <div class="sheets-status-banner" id="sheets-status-banner">
+            <div class="status-banner-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+            <div class="status-banner-info">
+              <h4 id="banner-status-title">Google Sheets 連線狀態</h4>
+              <p id="banner-status-desc">讀取中...</p>
+            </div>
+            <button type="button" id="btn-sync-now" class="btn btn-primary btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>立即全量同步</span>
+            </button>
+          </div>
+
+          <!-- 模式切換標籤 -->
+          <div class="sheets-tab-nav">
+            <button type="button" class="sheets-tab-btn active" data-tab="tab-gas">
+              ⚡ Google Apps Script 簡易網址串接 (推薦・免 GCP)
+            </button>
+            <button type="button" class="sheets-tab-btn" data-tab="tab-sa">
+              🛡️ GCP 服務帳戶 (Service Account) 金鑰串接
+            </button>
+          </div>
+
+          <!-- 分頁 1: Google Apps Script Web App 模式 -->
+          <div id="tab-gas" class="sheets-tab-pane active">
+            <div class="gas-quick-intro">
+              <div class="intro-badge">推薦方式</div>
+              <h4>免複雜 GCP 專案設定！只要貼上 Apps Script 網址即可雙向自動同步</h4>
+              <p>員工提交申請與會計完成審核時，系統將自動背景將紀錄拋送至您的 Google 試算表；發票憑證照片亦可自動儲存至 Google 雲端硬碟資料夾。</p>
+            </div>
+
+            <form id="form-gas-config">
+              <div class="form-group">
+                <label for="cfg-gas-url">Google Apps Script Web App 網址 (/exec) <span class="required">*</span></label>
+                <div class="input-with-button">
+                  <input type="url" id="cfg-gas-url" 
+                    value="https://script.google.com/macros/s/AKfycbxTdgqw22UF8KZCYCXlGo7SuwV7Q_nBWBC9wT6OJqEBIjb6Nea0V5bFSiy2JlMbSeMDxg/exec"
+                    placeholder="https://script.google.com/macros/s/.../exec" required>
+                  <button type="button" id="btn-test-gas" class="btn btn-outline">測試連線</button>
+                </div>
+                <span class="input-hint">填入您在 Google 試算表部署發布之 Web 應用程式網址</span>
+              </div>
+
+              <div class="gas-steps-box">
+                <div class="steps-title">📌 3 步驟快速完成 Google 試算表配置：</div>
+                <ol class="steps-list">
+                  <li>在您的 Google 試算表上方選單點選<strong>「擴充功能」>「Apps Script」</strong>。</li>
+                  <li>點擊下方按鈕<strong>「📋 查看 / 一鍵複製 Apps Script 腳本」</strong>，將代碼貼上替換試算表內的 <code>Code.gs</code>。</li>
+                  <li>點擊右上角<strong>「部署」>「新部署」</strong>，類型選擇<strong>「網頁應用程式」</strong>，並將<strong>「誰可以存取」設為「所有人 (Anyone)」</strong>，複製產生的 <code>/exec</code> 網址貼回上方即可！</li>
+                </ol>
+                <div class="steps-actions">
+                  <button type="button" id="btn-view-code-gs" class="btn btn-secondary btn-sm">
+                    📋 查看 / 一鍵複製 Apps Script 腳本 (Code.gs)
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-actions-right" style="margin-top: 16px;">
+                <button type="submit" class="btn btn-primary">
+                  <span>儲存 Google Apps Script 設定</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 分頁 2: GCP 服務帳戶模式 -->
+          <div id="tab-sa" class="sheets-tab-pane">
+            <div class="sync-instructions">
+              <h4>💡 GCP Service Account 官方 API 架構說明</h4>
+              <ul>
+                <li><strong>全後端隔離</strong>：私鑰安全存放於伺服器後端，網頁端嚴格遮蔽不外洩。</li>
+                <li><strong>多重容錯</strong>：即使未設定 Google API，系統仍以本機安全資料庫確保 100% 穩定運作。</li>
+              </ul>
+            </div>
+
+            <!-- 僅超級使用者可看到與修改連線金鑰配置 -->
+            <div id="sheets-config-section" class="sheets-config-section">
+              <form id="form-sheets-config">
+                <div class="form-group">
+                  <label for="cfg-email">服務帳戶 Email (Service Account Email)</label>
+                  <input type="email" id="cfg-email" placeholder="example@project-id.iam.gserviceaccount.com">
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg-sheet-id">Google 試算表 ID (Spreadsheet ID)</label>
+                  <input type="text" id="cfg-sheet-id" placeholder="例如：1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms">
+                  <span class="input-hint">可從 Google 試算表網址中的 /d/【此段ID】/edit 取得</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg-drive-folder">Google Drive 雲端資料夾 ID (選填，發票憑證照片自動歸檔)</label>
+                  <input type="text" id="cfg-drive-folder" placeholder="例如：1a2b3c4d5e6f7g8h9i0j...">
+                  <span class="input-hint">可從 Google 雲端硬碟資料夾網址中的 /folders/【此段ID】 取得</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg-key">服務帳戶私鑰 (Private Key)</label>
+                  <textarea id="cfg-key" rows="3" placeholder="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"></textarea>
+                  <span class="input-hint">金鑰將安全儲存在後端伺服器，前端僅能檢視安全遮罩</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfg-sheet-name">工作表名稱 (預設：零用金申請明細)</label>
+                  <input type="text" id="cfg-sheet-name" placeholder="零用金申請明細">
+                </div>
+
+                <div class="form-actions-right">
+                  <button type="button" id="btn-test-connection" class="btn btn-outline">
+                    <span>測試連線</span>
+                  </button>
+                  <button type="submit" class="btn btn-primary">
+                    <span>儲存設定並套用</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 4: Google Apps Script 腳本預覽與複製 -->
+    <div id="modal-code-gs" class="modal-overlay">
+      <div class="modal-card glass-panel modal-lg">
+        <div class="modal-header">
+          <h3>Google Apps Script 串接腳本 (Code.gs)</h3>
+          <button class="btn-close-modal" data-close="modal-code-gs">&times;</button>
+        </div>
+        <div class="modal-body-scrollable">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+            請複製下方完整的 Google Apps Script 代碼，貼入您 Google 試算表內的 <code>Code.gs</code> 檔案中，並執行「部署」>「新部署」>「網頁應用程式 (所有人可存取)」即可！
+          </p>
+          <div class="code-preview-wrapper">
+            <button type="button" id="btn-copy-code-gs" class="btn btn-primary btn-sm btn-copy-floating">
+              📋 一鍵複製完整腳本
+            </button>
+            <pre><code id="code-gs-content">// 正在載入 Code.gs 範本...</code></pre>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-code-gs">關閉</button>
+          <button type="button" id="btn-copy-code-gs-2" class="btn btn-primary">📋 一鍵複製完整腳本</button>
+        </div>
+      </div>
+    </div>
+    <!-- Modal 5: 發票憑證大圖即時檢視彈窗 -->
+    <div id="modal-receipt-viewer" class="modal-overlay">
+      <div class="modal-card glass-panel receipt-viewer-card">
+        <div class="modal-header">
+          <h3 id="receipt-viewer-title">發票憑證相片檢視</h3>
+          <button class="btn-close-modal" data-close="modal-receipt-viewer">&times;</button>
+        </div>
+        <div class="receipt-viewer-meta">
+          <span>單號: <strong id="receipt-viewer-claim-no">-</strong></span>
+          <span>發票號碼: <strong id="receipt-viewer-receipt-no">-</strong></span>
+          <span>金額: <strong id="receipt-viewer-amount">-</strong></span>
+        </div>
+        <div class="receipt-viewer-img-box">
+          <img id="receipt-viewer-img" src="" alt="發票憑證相片載入中...">
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+          <a id="receipt-viewer-open-link" href="#" target="_blank" class="btn btn-outline btn-sm">
+            🔗 在新分頁開啟原始檔案
+          </a>
+          <button type="button" class="btn btn-primary btn-sm" data-close="modal-receipt-viewer">
+            關閉檢視
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 6: 發票憑證照片 A4 自動排版與列印中心 -->
+    <div id="modal-receipts-a4" class="modal-overlay modal-a4-overlay">
+      <div class="modal-card glass-panel modal-a4-preview-card">
+        <!-- 頂部控制列 (螢幕檢視與操作，列印時自動隱藏) -->
+        <div class="a4-control-header no-print">
+          <div class="a4-header-left">
+            <div class="a4-icon-badge">🖨️</div>
+            <div>
+              <h3 class="a4-modal-title">零用金支出憑證黏存單 (A4 自動排版與列印)</h3>
+              <p class="a4-sub-hint" id="a4-summary-hint">正在計算憑證清單...</p>
+            </div>
+          </div>
+          <div class="a4-header-right">
+            <!-- 排版模式選單 -->
+            <div class="a4-option-group">
+              <label for="a4-layout-mode">排版樣式：</label>
+              <select id="a4-layout-mode" class="a4-select-input">
+                <option value="12" selected>每頁 12 張 (3×4 濃縮精簡・推薦)</option>
+                <option value="6">每頁 6 張 (2×3 實用緊湊)</option>
+                <option value="4">每頁 4 張 (2×2 黏存單標準)</option>
+                <option value="2">每頁 2 張 (大圖清單模式)</option>
+                <option value="1">每頁 1 張 (單張特大圖模式)</option>
+              </select>
+            </div>
+
+            <!-- 列印動作按鈕 -->
+            <button type="button" id="btn-do-print-a4" class="btn btn-success">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              <span>🖨️ 立即列印 / 另存為 PDF</span>
+            </button>
+            <button type="button" class="btn btn-outline" data-close="modal-receipts-a4">關閉預覽</button>
+          </div>
+        </div>
+
+        <!-- A4 預覽滾動區 -->
+        <div class="a4-preview-scrollable">
+          <!-- 若查無憑證照片時的提示 -->
+          <div id="a4-empty-hint" class="a4-empty-notice hidden">
+            <div style="font-size: 36px; margin-bottom: 8px;">📷</div>
+            <p style="font-weight: 600; font-size: 16px;">當前篩選條件下查無任何發票憑證相片</p>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">請先上傳發票憑證，或切換上方月份與篩選條件後重試。</p>
+          </div>
+
+          <!-- 可列印核心區塊 (由 JS 依憑證數量動態生成 A4 頁面，排滿自動分頁) -->
+          <div id="receipts-a4-printable-area" class="a4-sheets-container">
+            <!-- 動態注入 .a4-sheet 頁面 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 7: AI 智能發票/收據照片辨識與自動建單中心 -->
+    <div id="modal-ai-ocr" class="modal-overlay">
+      <div class="modal-card glass-panel modal-ai-card">
+        <!-- 彈窗 Header -->
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="ai-header-badge">✨ AI</div>
+            <div>
+              <h3 style="font-size: 17px; font-weight: 700; color: #F8FAFC;">發票/收據相片 AI 自動辨識建單</h3>
+              <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                📸 支援一張照片拍攝多張發票或收據，AI 自動分離辨識品項、金額與發票號
+              </p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" id="btn-toggle-gemini-key" class="btn btn-sm btn-outline" title="配置 Google Gemini API Key">
+              ⚙️ Gemini Key
+            </button>
+            <button class="btn-close-modal" data-close="modal-ai-ocr">&times;</button>
+          </div>
+        </div>
+
+        <!-- 可摺疊 Gemini API Key 設定列 -->
+        <div id="gemini-key-panel" class="gemini-key-panel hidden">
+          <div class="gemini-key-box">
+            <label for="input-gemini-api-key">Google Gemini API Key (選填，啟用 100% 真實即時 AI 多模態影像解析):</label>
+            <div style="display: flex; gap: 8px; margin-top: 4px; align-items: center;">
+              <input type="password" id="input-gemini-api-key" placeholder="AIzaSy... (若未填寫則以智能展示模式運作)" style="flex:1;">
+              <button type="button" id="btn-toggle-key-visibility" class="btn btn-sm btn-outline" style="padding: 6px 10px;" title="顯示/隱藏金鑰">👁️</button>
+              <button type="button" id="btn-save-gemini-key" class="btn btn-sm btn-primary">儲存 Key</button>
+            </div>
+            <span class="input-hint">免費申請或查看金鑰：請至 <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #60A5FA; text-decoration: underline;">Google AI Studio API Key 管理中心</a> (免費額度充裕)</span>
+          </div>
+        </div>
+
+        <div class="modal-body modal-ai-body">
+          <!-- 步驟 1: 上傳 / 拍照區 -->
+          <div id="ai-step-upload" class="ai-upload-container">
+            <div class="ai-upload-dropzone" id="ai-dropzone">
+              <input type="file" id="ai-file-input" accept="image/*" capture="environment" style="display: none;">
+              <div class="ai-dropzone-content">
+                <div class="ai-scan-radar-icon">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#3B82F6" stroke-width="1.8">
+                    <rect x="3" y="3" width="18" height="18" rx="4"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                    <line x1="2" y1="12" x2="22" y2="12" stroke="#60A5FA" stroke-dasharray="4 2"></line>
+                  </svg>
+                </div>
+                <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 6px;">點擊選取相片、手機拍照 或 拖曳發票照片至此</h4>
+                <p class="ai-dropzone-hint">
+                  支援一張照片拍攝 <strong>1 ~ 10 張發票或收據</strong>（超商發票、計程車收據、高鐵票、餐廳免統收據均可）<br>
+                  亦支援直接使用 <code>Ctrl + V</code> 貼上剪貼簿相片！
+                </p>
+                <div class="ai-dropzone-actions">
+                  <button type="button" id="btn-browse-ai-photo" class="btn btn-primary">
+                    📁 瀏覽照片檔案
+                  </button>
+                  <button type="button" id="btn-sample-ai-photo" class="btn btn-outline">
+                    🧪 載入測試範本照片
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 步驟 2: AI 辨識中掃描動畫 -->
+          <div id="ai-step-loading" class="ai-loading-container hidden">
+            <div class="ai-scanner-box">
+              <img id="ai-loading-preview-img" src="" alt="發票掃描中">
+              <div class="ai-scan-laser-line"></div>
+            </div>
+            <div class="ai-loading-text">
+              <div class="ai-loading-spinner"></div>
+              <div>
+                <h4 id="ai-loading-title">AI 多模態視覺分析中...</h4>
+                <p id="ai-loading-desc">正在分離發票邊界、辨識消費日期、項目、金額與發票號碼</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 步驟 3: 辨識結果與批次確認編輯區 -->
+          <div id="ai-step-results" class="ai-results-container hidden">
+            <div class="ai-results-split">
+              <!-- 左側原圖預覽 -->
+              <div class="ai-results-img-col">
+                <div class="ai-source-img-header">
+                  <span>📸 辨識發票相片</span>
+                  <button type="button" id="btn-ai-reupload" class="btn btn-sm btn-outline">重新上傳</button>
+                </div>
+                <div class="ai-source-img-wrap">
+                  <img id="ai-source-preview-img" src="" alt="辨識來源照片">
+                </div>
+                <div class="ai-source-hint">
+                  ※ 本張照片將自動關聯綁定至以下建立的所有申請單中
+                </div>
+              </div>
+
+              <!-- 右側發票卡片清單 -->
+              <div class="ai-results-cards-col">
+                <div class="ai-cards-header">
+                  <div class="ai-detected-count" id="ai-detected-count">已辨識 0 張發票</div>
+                  <button type="button" id="btn-add-manual-receipt" class="btn btn-sm btn-outline">➕ 補充一張</button>
+                </div>
+
+                <div id="ai-detected-list" class="ai-detected-list">
+                  <!-- 動態注入每張辨識出來的發票卡片 -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 彈窗 Footer -->
+        <div class="modal-footer ai-modal-footer">
+          <div class="ai-footer-info" id="ai-footer-info">
+            <span id="ai-footer-selected-count">已勾選 0 筆</span>
+            <span id="ai-footer-total-amount" class="ai-total-highlight">合計 NT$ 0</span>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-outline" data-close="modal-ai-ocr">取消</button>
+            <button type="button" id="btn-submit-batch-claims" class="btn btn-primary btn-glow" disabled>
+              🚀 一鍵自動建立申請單
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast 訊息通知元件 -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="js/api.js?v=20260919_08"></script>
+  <script src="js/app.js?v=20260919_08"></script>
+</body>
+</html>
