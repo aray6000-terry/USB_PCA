@@ -1889,7 +1889,13 @@
 
       if (format === 'excel') {
         blob = await api.export.excel(state.filters);
-        filename = `零用金支出明細報表_${monthStr}_${timestamp}.xlsx`;
+        // 防禦機制：若因瀏覽器沙盒限制降級為 CSV，自動更名為 .csv 避免 Excel 報檔案無效或格式不符
+        if (blob && blob.type && blob.type.includes('csv')) {
+          filename = `零用金支出明細報表_${monthStr}_${timestamp}.csv`;
+          showToast('系統已自動切換為 UTF-8 BOM CSV 格式下載', 'warning');
+        } else {
+          filename = `零用金支出明細報表_${monthStr}_${timestamp}.xlsx`;
+        }
       } else {
         blob = await api.export.csv(state.filters);
         filename = `零用金支出明細_${monthStr}_${timestamp}.csv`;

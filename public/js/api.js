@@ -187,6 +187,290 @@ class ApiService {
     localStorage.setItem('petty_cash_approval_logs', JSON.stringify(logs));
   }
 
+  // 確保 ExcelJS 函式庫已載入 (支援本地、全域與 CDN 動態容錯)
+  async ensureExcelJS() {
+    if (typeof window !== 'undefined' && (window.ExcelJS || window.exceljs)) {
+      return window.ExcelJS || window.exceljs;
+    }
+    if (typeof ExcelJS !== 'undefined') {
+      return ExcelJS;
+    }
+    if (typeof document === 'undefined') {
+      try {
+        return require('exceljs');
+      } catch (e) {
+        throw new Error('ExcelJS 模組未安裝');
+      }
+    }
+    return new Promise((resolve, reject) => {
+      // 1. 嘗試由本專案的 public/js/exceljs.min.js 載入
+      const script = document.createElement('script');
+      script.src = 'js/exceljs.min.js';
+      script.onload = () => {
+        const lib = (typeof window !== 'undefined' && (window.ExcelJS || window.exceljs)) || (typeof ExcelJS !== 'undefined' && ExcelJS);
+        if (lib) resolve(lib);
+        else reject(new Error('ExcelJS 載入但未建立全域物件'));
+      };
+      script.onerror = () => {
+        // 2. 本地若 404，由知名 CDN 備援加載
+        const cdnScript = document.createElement('script');
+        cdnScript.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+        cdnScript.onload = () => {
+          const lib = (typeof window !== 'undefined' && (window.ExcelJS || window.exceljs)) || (typeof ExcelJS !== 'undefined' && ExcelJS);
+          if (lib) resolve(lib);
+          else reject(new Error('CDN ExcelJS 載入但未建立全域物件'));
+        };
+        cdnScript.onerror = () => reject(new Error('無法載入 ExcelJS 報表生成函式庫'));
+        document.head.appendChild(cdnScript);
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  // 純前端 / GitHub Pages / 雲端直連模式：以 ExcelJS 生成標準二進位 .xlsx 報表
+  async generateClientExcel(claims, filterInfo = {}) {
+    const ExcelJS = await this.ensureExcelJS();
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = '企業零用金申請系統 (Cloud/Web)';
+    workbook.lastModifiedBy = '財務部會計處';
+    workbook.created = new Date();
+
+    const statusLabels = {
+      pending: '待初審',
+      acc_approved: '待複審',
+      approved: '已核准',
+      disbursed: '已撥款核銷',
+      rejected: '已退回'
+    };
+
+    // 1. 明細工作表
+    const sheet = workbook.addWorksheet('零用金申請明細表', {
+      views: [{ showGridLines: true }]
+    });
+
+    const monthTitle = filterInfo.month && filterInfo.month !== 'all'
+      ? ` (${filterInfo.month} 月份)`
+      : ' (全部期間)';
+    const titleText = `企業零用金支出核銷明細表${monthTitle}`;
+
+    sheet.mergeCells('A1:L1');
+    const titleRow = sheet.getCell('A1');
+    titleRow.value = titleText;
+    titleRow.font = { name: '微軟正黑體', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1E293B' }
+    };
+    titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    sheet.getRow(1).height = 40;
+
+    sheet.mergeCells('A2:L2');
+    const subTitle = sheet.getCell('A2');
+    const nowStr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+    subTitle.value = `匯出時間：${nowStr}  |  篩選類別：${filterInfo.category && filterInfo.category !== 'all' ? filterInfo.category : '全部類別'}  |  篩選狀態：${filterInfo.status && filterInfo.status !== 'all' ? (statusLabels[filterInfo.status] || filterInfo.status) : '全部狀態'}  |  總筆數：${claims.length} 筆`;
+    subTitle.font = { name: '微軟正黑體', size: 10, color: { argb: 'FF64748B' } };
+    subTitle.alignment = { vertical: 'middle', horizontal: 'left' };
+    sheet.getRow(2).height = 24;
+
+    const headers = [
+      { header: '申請單號', key: 'claim_no', width: 18 },
+      { header: '消費日期', key: 'expense_date', width: 14 },
+      { header: '申請同仁', key: 'user_name', width: 18 },
+      { header: '所屬部門', key: 'department', width: 15 },
+      { header: '費用類別', key: 'category', width: 16 },
+      { header: '申請項目說明', key: 'item_name', width: 32 },
+      { header: '申報金額 (NT$)', key: 'amount', width: 16 },
+      { header: '核准金額 (NT$)', key: 'approved_amount', width: 16 },
+      { header: '發票/收據號碼', key: 'receipt_no', width: 18 },
+      { header: '備註說明', key: 'notes', width: 28 },
+      { header: '審核狀態', key: 'status_label', width: 14 },
+      { header: '憑證照片 (連結)', key: 'receipt_photo', width: 26 }
+    ];
+
+    const headerRow = sheet.getRow(3);
+    headers.forEach((h, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.value = h.header;
+      cell.font = { name: '微軟正黑體', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF2563EB' }
+      };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'medium', color: { argb: 'FF1E293B' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+      };
+      sheet.getColumn(idx + 1).width = h.width;
+    });
+    headerRow.height = 28;
+
+    let currentRowIdx = 4;
+    claims.forEach(c => {
+      const row = sheet.getRow(currentRowIdx);
+      const approvedAmt = c.approved_amount !== undefined && c.approved_amount !== null ? c.approved_amount : c.amount;
+
+      row.values = [
+        c.claim_no || '',
+        c.expense_date || '',
+        c.user_name || '',
+        c.department || '',
+        c.category || '',
+        c.item_name || '',
+        Number(c.amount) || 0,
+        Number(approvedAmt) || 0,
+        c.receipt_no || '-',
+        c.notes || '-',
+        statusLabels[c.status] || c.status || '待審核',
+        c.receipt_url ? (c.receipt_url.startsWith('http') ? '🔗 點擊開啟' : '已附憑證照片') : '-'
+      ];
+
+      if (c.receipt_url && c.receipt_url.startsWith('http')) {
+        const photoCell = row.getCell(12);
+        photoCell.value = { text: '🔗 點擊開啟照片 (Drive/雲端)', hyperlink: c.receipt_url };
+        photoCell.font = { name: '微軟正黑體', size: 10, color: { argb: 'FF2563EB' }, underline: true };
+      }
+
+      for (let col = 1; col <= 12; col++) {
+        const cell = row.getCell(col);
+        if (col !== 12 || !c.receipt_url || !c.receipt_url.startsWith('http')) {
+          cell.font = { name: '微軟正黑體', size: 10 };
+        }
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        };
+
+        if (col === 7 || col === 8) {
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+          cell.numFmt = '"NT$"#,##0';
+          if (col === 8 && approvedAmt !== c.amount) {
+            cell.font = { name: '微軟正黑體', size: 10, bold: true, color: { argb: 'FF059669' } };
+          }
+        } else if (col === 1 || col === 2 || col === 9 || col === 11) {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        }
+      }
+
+      if (currentRowIdx % 2 === 0) {
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF8FAFC' }
+        };
+      }
+      row.height = 26;
+      currentRowIdx++;
+    });
+
+    // 總計列
+    const totalRow = sheet.getRow(currentRowIdx);
+    sheet.mergeCells(`A${currentRowIdx}:F${currentRowIdx}`);
+    const totalLabel = sheet.getCell(`A${currentRowIdx}`);
+    totalLabel.value = '總計金額 (Total)';
+    totalLabel.font = { name: '微軟正黑體', size: 11, bold: true };
+    totalLabel.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    const totalAmountCell = sheet.getCell(`G${currentRowIdx}`);
+    totalAmountCell.value = claims.length > 0 ? { formula: `SUM(G4:G${currentRowIdx - 1})` } : 0;
+    totalAmountCell.font = { name: '微軟正黑體', size: 11, bold: true, color: { argb: 'FFDC2626' } };
+    totalAmountCell.numFmt = '"NT$"#,##0';
+    totalAmountCell.alignment = { vertical: 'middle', horizontal: 'right' };
+
+    const approvedTotalCell = sheet.getCell(`H${currentRowIdx}`);
+    approvedTotalCell.value = claims.length > 0 ? { formula: `SUM(H4:H${currentRowIdx - 1})` } : 0;
+    approvedTotalCell.font = { name: '微軟正黑體', size: 11, bold: true, color: { argb: 'FF059669' } };
+    approvedTotalCell.numFmt = '"NT$"#,##0';
+    approvedTotalCell.alignment = { vertical: 'middle', horizontal: 'right' };
+
+    for (let c = 1; c <= 12; c++) {
+      const cell = totalRow.getCell(c);
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF1F5F9' }
+      };
+      cell.border = {
+        top: { style: 'medium', color: { argb: 'FF0F172A' } },
+        bottom: { style: 'double', color: { argb: 'FF0F172A' } }
+      };
+    }
+    totalRow.height = 28;
+
+    // 2. 統計彙總工作表 (類別分析)
+    const summarySheet = workbook.addWorksheet('費用類別統計彙總');
+    summarySheet.views = [{ showGridLines: true }];
+
+    summarySheet.mergeCells('A1:D1');
+    const sTitle = summarySheet.getCell('A1');
+    sTitle.value = '零用金費用類別統計彙總表';
+    sTitle.font = { name: '微軟正黑體', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    sTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+    sTitle.alignment = { vertical: 'middle', horizontal: 'center' };
+    summarySheet.getRow(1).height = 36;
+
+    const sHeaders = ['費用類別', '申請筆數', '總金額 (NT$)', '佔比 (%)'];
+    const sHeaderRow = summarySheet.getRow(2);
+    sHeaders.forEach((h, idx) => {
+      const cell = sHeaderRow.getCell(idx + 1);
+      cell.value = h;
+      cell.font = { name: '微軟正黑體', bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    });
+    summarySheet.columns = [
+      { width: 22 },
+      { width: 16 },
+      { width: 20 },
+      { width: 16 }
+    ];
+
+    const categoryMap = {};
+    let grandTotal = 0;
+    claims.forEach(c => {
+      const cat = c.category || '其他';
+      if (!categoryMap[cat]) {
+        categoryMap[cat] = { count: 0, sum: 0 };
+      }
+      categoryMap[cat].count += 1;
+      const amt = Number(c.amount) || 0;
+      categoryMap[cat].sum += amt;
+      grandTotal += amt;
+    });
+
+    let sRowIdx = 3;
+    Object.keys(categoryMap).forEach(cat => {
+      const row = summarySheet.getRow(sRowIdx);
+      const data = categoryMap[cat];
+      const percent = grandTotal > 0 ? (data.sum / grandTotal) * 100 : 0;
+      row.values = [
+        cat,
+        data.count,
+        data.sum,
+        `${percent.toFixed(1)}%`
+      ];
+      row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(2).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(3).alignment = { vertical: 'middle', horizontal: 'right' };
+      row.getCell(3).numFmt = '"NT$"#,##0';
+      row.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' };
+      sRowIdx++;
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+  }
+
   setSession(token, user) {
     this.token = token;
     this.currentUser = user;
@@ -865,7 +1149,7 @@ class ApiService {
     }
   };
 
-  // 3. 報表匯出模組 (支援純前端 CSV / Excel 二進位 Blob 自動生成)
+  // 3. 報表匯出模組 (支援本機 Node.js 與純前端 / GitHub Pages 原生二進位 Excel .xlsx 自動生成)
   export = {
     excel: async (params = {}) => {
       if (!this.isCloudMode) {
@@ -874,12 +1158,26 @@ class ApiService {
           Object.keys(params).forEach(k => {
             if (params[k] && params[k] !== 'all') qs.append(k, params[k]);
           });
-          return await this.request(`/export/excel?${qs.toString()}`);
+          const blob = await this.request(`/export/excel?${qs.toString()}`);
+          if (blob && blob.type && (blob.type.includes('spreadsheetml') || blob.type.includes('octet-stream'))) {
+            return blob;
+          }
         } catch (e) {
-          if (!e.message.startsWith('CloudModeActive')) throw e;
+          if (!e.message.startsWith('CloudModeActive')) {
+            console.warn('後端伺服器 Excel 匯出未就緒，自動切換為前端原生 ExcelJS 引擎生成:', e);
+          }
         }
       }
-      return await this.export.csv(params);
+
+      // 純前端 / GitHub Pages / 雲端直連模式：以 ExcelJS 生成真實二進位 .xlsx
+      try {
+        const res = await this.claims.list(params);
+        const claims = res.claims || [];
+        return await this.generateClientExcel(claims, params);
+      } catch (err) {
+        console.error('前端 ExcelJS 生成失敗，降級為標準 CSV:', err);
+        return await this.export.csv(params);
+      }
     },
 
     csv: async (params = {}) => {
@@ -889,32 +1187,57 @@ class ApiService {
           Object.keys(params).forEach(k => {
             if (params[k] && params[k] !== 'all') qs.append(k, params[k]);
           });
-          return await this.request(`/export/csv?${qs.toString()}`);
+          const blob = await this.request(`/export/csv?${qs.toString()}`);
+          if (blob && blob.type && blob.type.includes('csv')) {
+            return blob;
+          }
         } catch (e) {
-          if (!e.message.startsWith('CloudModeActive')) throw e;
+          if (!e.message.startsWith('CloudModeActive')) {
+            console.warn('後端 CSV 匯出未就緒，自動切換為前端 CSV 引擎:', e);
+          }
         }
       }
 
       const res = await this.claims.list(params);
       const claims = res.claims || [];
 
-      const headers = ['申請單號', '申請日期', '消費日期', '申請人', '部門', '費用類別', '申請項目', '申請金額', '核准金額', '發票號碼', '審核狀態', '備註說明'];
-      const rows = claims.map(c => [
-        `"${c.claim_no || ''}"`,
-        `"${(c.created_at || '').substring(0, 10)}"`,
-        `"${c.expense_date || ''}"`,
-        `"${c.user_name || ''}"`,
-        `"${c.department || ''}"`,
-        `"${c.category || ''}"`,
-        `"${(c.item_name || '').replace(/"/g, '""')}"`,
-        c.amount || 0,
-        c.approved_amount !== undefined ? c.approved_amount : c.amount,
-        `"${c.receipt_no || ''}"`,
-        `"${c.status || ''}"`,
-        `"${(c.notes || '').replace(/"/g, '""')}"`
-      ]);
+      const statusLabels = {
+        pending: '待初審',
+        acc_approved: '待複審',
+        approved: '已核准',
+        disbursed: '已撥款核銷',
+        rejected: '已退回'
+      };
 
-      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+      const headers = ['申請單號', '消費日期', '申請同仁', '所屬部門', '費用類別', '申請項目說明', '申報金額 (NT$)', '核准金額 (NT$)', '發票/收據號碼', '審核狀態', '備註說明', '申請時間', '發票憑證網址'];
+      const escapeCsv = val => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const rows = [headers.map(escapeCsv).join(',')];
+      claims.forEach(c => {
+        const approvedAmt = c.approved_amount !== undefined && c.approved_amount !== null ? c.approved_amount : c.amount;
+        const row = [
+          c.claim_no || '',
+          c.expense_date || '',
+          c.user_name || '',
+          c.department || '',
+          c.category || '',
+          c.item_name || '',
+          c.amount || 0,
+          approvedAmt || 0,
+          c.receipt_no || '-',
+          statusLabels[c.status] || c.status || '待審核',
+          c.notes || '-',
+          c.created_at ? new Date(c.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '',
+          c.receipt_url || ''
+        ];
+        rows.push(row.map(escapeCsv).join(','));
+      });
+
+      const csvContent = '\uFEFF' + rows.join('\r\n');
       return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     }
   };
