@@ -29,6 +29,16 @@
       "role": "admin",
       "department": "總管理處",
       "created_at": "2026-09-19T01:18:47.050Z"
+    },
+    {
+      "id": "usr_emp_01",
+      "username": "user",
+      "password_hash": "$2a$10$0HpDYbtrYfMUT4vTJc7PwuG.PIN85SmpB9V7hbkuFaPUzp3NmyBRG",
+      "plain_password": "user123",
+      "name": "張小明 (業務同仁)",
+      "role": "employee",
+      "department": "業務部",
+      "created_at": "2026-09-21T07:43:16.211Z"
     }
   ],
   "claims": [
@@ -158,10 +168,10 @@
       "user_id": "usr_emp_01",
       "user_name": "張小明 (業務同仁)",
       "department": "業務一部",
-      "item_name": "拜訪竹科客戶高鐵商務車票",
+      "item_name": "業務拜訪重要客戶餐費",
       "amount": 2980,
       "expense_date": "2026-09-18",
-      "category": "交通",
+      "category": "餐食",
       "receipt_no": "THSR-99881122",
       "notes": "竹科聯發科專案拜訪",
       "receipt_url": "/uploads/EXP-202609-008_發票憑證_1789749921619.png",
@@ -499,6 +509,20 @@
     "google_drive_folder_id": "1TlGIxQu8ZIso3wL8wzAbDpwNwxIFOHut"
   },
   "user_applications": [
+    {
+      "id": "app_1789955435705_1tzpa",
+      "status": "pending",
+      "created_at": "2026-09-21T01:50:35.705Z",
+      "username": "user_1789955435602",
+      "password_hash": "$2a$10$8f6RvM2cn19CUR7R0Utt7eD9LyF.iJTGZcU564h9ZGEL65nizhi3K",
+      "plain_password": "password123",
+      "name": "林測試",
+      "department": "行銷部",
+      "requested_role": "employee",
+      "reason": "負責公關宣傳日常零用金報銷業務",
+      "role": "employee",
+      "apply_reason": "負責公關宣傳日常零用金報銷業務"
+    },
     {
       "id": "app_1789780126185_8r8oo",
       "status": "pending",

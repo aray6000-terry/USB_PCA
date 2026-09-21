@@ -1089,67 +1089,134 @@ class ApiService {
         );
       }
 
+      // 狀態篩選
       if (params.status && params.status !== 'all') {
         claims = claims.filter(c => c.status === params.status);
       }
 
+      // 類別篩選
+      if (params.category && params.category !== 'all') {
+        claims = claims.filter(c => c.category === params.category);
+      }
+
+      // 月份篩選 (YYYY-MM)
       if (params.month && params.month !== 'all') {
         claims = claims.filter(c => (c.expense_date || '').startsWith(params.month));
       }
 
+      // 部門篩選
       if (params.department && params.department !== 'all') {
         claims = claims.filter(c => c.department === params.department);
       }
 
-      if (params.search) {
-        const q = params.search.toLowerCase();
+      // 關鍵字搜尋 (支援 keyword 與 search 參數，涵蓋項目、單號、同仁、發票號碼、備註、類別、部門與金額)
+      const kw = (params.keyword || params.search || '').trim().toLowerCase();
+      if (kw) {
         claims = claims.filter(c =>
-          (c.claim_no || '').toLowerCase().includes(q) ||
-          (c.item_name || '').toLowerCase().includes(q) ||
-          (c.user_name || '').toLowerCase().includes(q) ||
-          (c.receipt_no || '').toLowerCase().includes(q)
+          (c.claim_no || '').toLowerCase().includes(kw) ||
+          (c.item_name || '').toLowerCase().includes(kw) ||
+          (c.user_name || '').toLowerCase().includes(kw) ||
+          (c.receipt_no || '').toLowerCase().includes(kw) ||
+          (c.notes || '').toLowerCase().includes(kw) ||
+          (c.category || '').toLowerCase().includes(kw) ||
+          (c.department || '').toLowerCase().includes(kw) ||
+          (c.amount !== undefined && String(c.amount).includes(kw))
         );
       }
 
-      return { success: true, claims, count: claims.length };
+      // 依日期倒序排序
+      claims.sort((a, b) => new Date(b.expense_date || 0) - new Date(a.expense_date || 0));
+
+      return { success: true, claims, count: claims.length, total: claims.length };
     },
 
     stats: async (month) => {
       if (!this.isCloudMode) {
         try {
-          const qs = month ? `?month=${month}` : '';
+          const qs = month && month !== 'all' ? `?month=${month}` : '';
           return await this.request(`/claims/stats${qs}`);
         } catch (e) {
           if (!e.message.startsWith('CloudModeActive')) throw e;
         }
       }
 
-      const claims = this.getCloudClaims();
-      const m = month || new Date().toISOString().substring(0, 7);
-      const mClaims = claims.filter(c => (c.expense_date || '').startsWith(m));
+      let claims = this.getCloudClaims();
+      const user = this.currentUser;
+      if (user && user.role === 'employee') {
+        claims = claims.filter(c =>
+          c.user_id === user.id ||
+          c.user_name === user.name
+        );
+      }
+      const m = (month && month !== 'all') ? month : '';
+      const mClaims = m ? claims.filter(c => (c.expense_date || '').startsWith(m)) : claims;
 
-      const totalClaims = mClaims.length;
-      const pendingClaims = mClaims.filter(c => c.status === 'pending' || c.status === 'accountant_approved').length;
-      const approvedClaims = mClaims.filter(c => c.status === 'approved' || c.status === 'disbursed').length;
-      const rejectedClaims = mClaims.filter(c => c.status === 'rejected').length;
+      let totalAmount = 0;
+      let pendingCount = 0;
+      let pendingAmount = 0;
+      let accApprovedCount = 0;
+      let accApprovedAmount = 0;
+      let approvedCount = 0;
+      let approvedAmount = 0;
+      let disbursedCount = 0;
+      let disbursedAmount = 0;
+      let rejectedCount = 0;
 
-      const totalAmount = mClaims.reduce((sum, c) => {
-        if (c.status === 'rejected') return sum;
-        const amt = (c.approved_amount !== undefined && c.approved_amount !== null) ? Number(c.approved_amount) : Number(c.amount || 0);
-        return sum + amt;
-      }, 0);
+      const categoryBreakdown = {
+        '交通': 0,
+        '餐食': 0,
+        '設備': 0,
+        '交際費': 0,
+        '清潔及庶務用品': 0,
+        '其他': 0
+      };
+
+      mClaims.forEach(c => {
+        const amt = Number(c.amount || 0);
+        totalAmount += amt;
+        if (categoryBreakdown[c.category] !== undefined) {
+          categoryBreakdown[c.category] += amt;
+        } else {
+          categoryBreakdown['其他'] = (categoryBreakdown['其他'] || 0) + amt;
+        }
+
+        const effectiveAmt = (c.approved_amount !== undefined && c.approved_amount !== null) ? Number(c.approved_amount) : amt;
+
+        if (c.status === 'pending') {
+          pendingCount++;
+          pendingAmount += amt;
+        } else if (c.status === 'acc_approved') {
+          accApprovedCount++;
+          accApprovedAmount += effectiveAmt;
+        } else if (c.status === 'approved') {
+          approvedCount++;
+          approvedAmount += effectiveAmt;
+        } else if (c.status === 'disbursed') {
+          disbursedCount++;
+          disbursedAmount += effectiveAmt;
+        } else if (c.status === 'rejected') {
+          rejectedCount++;
+        }
+      });
 
       const cfg = this.getCloudConfig();
 
       return {
         success: true,
-        month: m,
+        month: m || '全部期間',
         stats: {
-          total_claims: totalClaims,
-          pending_claims: pendingClaims,
-          approved_claims: approvedClaims,
-          rejected_claims: rejectedClaims,
+          total_claims: mClaims.length,
           total_amount: totalAmount,
+          pending_count: pendingCount,
+          pending_amount: pendingAmount,
+          acc_approved_count: accApprovedCount,
+          acc_approved_amount: accApprovedAmount,
+          approved_count: approvedCount,
+          approved_amount: approvedAmount,
+          disbursed_count: disbursedCount,
+          disbursed_amount: disbursedAmount,
+          rejected_count: rejectedCount,
+          category_breakdown: categoryBreakdown,
           monthly_budget_warning: cfg.monthly_budget_warning || 50000,
           budget_exceeded: totalAmount > (cfg.monthly_budget_warning || 50000)
         }

@@ -78,6 +78,10 @@
     filterMonth: document.getElementById('filter-month'),
     filterCategory: document.getElementById('filter-category'),
     filterStatus: document.getElementById('filter-status'),
+    btnResetFilters: document.getElementById('btn-reset-filters'),
+    kpiCardTotal: document.getElementById('kpi-card-total'),
+    kpiCardPending: document.getElementById('kpi-card-pending'),
+    kpiCardDisbursed: document.getElementById('kpi-card-disbursed'),
     btnOpenCreateModal: document.getElementById('btn-open-create-modal'),
     btnExportDropdown: document.getElementById('btn-export-dropdown'),
     exportMenu: document.getElementById('export-menu'),
@@ -85,6 +89,7 @@
     btnExportCsv: document.getElementById('btn-export-csv'),
     btnSheetsPanel: document.getElementById('btn-sheets-panel'),
     btnRefreshList: document.getElementById('btn-refresh-list'),
+    btnRefreshListMini: document.getElementById('btn-refresh-list-mini'),
 
     // Table
     claimsTbody: document.getElementById('claims-tbody'),
@@ -259,7 +264,8 @@
   }
 
   function formatCurrency(amount) {
-    return 'NT$ ' + Number(amount || 0).toLocaleString('zh-TW');
+    const num = Number(amount);
+    return 'NT$ ' + (isNaN(num) ? 0 : num).toLocaleString('zh-TW');
   }
 
   // 金額轉中文大寫金額
@@ -1310,6 +1316,42 @@
     }
   }
 
+  // 快速身分視角切換 (超級使用者 / 會計審核 / 一般同仁)
+  async function switchActiveRole(username) {
+    if (!username) return;
+    try {
+      showToast('正在切換身分視角...', 'info');
+      const credentialsMap = {
+        'terry': { username: 'terry', password: 'terry123' },
+        'user': { username: 'user', password: 'user123' },
+        'amyliupp@gmail.com': { username: 'amyliupp@gmail.com', password: 'amyliupp@gmail.com' },
+        'aray6000@hotmail.com': { username: 'aray6000@hotmail.com', password: 'ray781008' },
+        'lin': { username: 'lin', password: 'user123' }
+      };
+
+      const cred = credentialsMap[username] || { username, password: 'user123' };
+
+      const res = await api.auth.login(cred.username, cred.password);
+      if (res.success && res.user) {
+        state.user = res.user;
+        updateHeaderUser();
+        // 重設篩選條件
+        state.filters.category = 'all';
+        state.filters.status = 'all';
+        state.filters.keyword = '';
+        if (dom.filterKeyword) dom.filterKeyword.value = '';
+        if (dom.filterCategory) dom.filterCategory.value = 'all';
+        if (dom.filterStatus) dom.filterStatus.value = 'all';
+        await loadDashboardData();
+        showToast(`已切換為：${state.user.name} (${dom.currentUserRoleBadge.textContent})`, 'success');
+      } else {
+        showToast('切換失敗: ' + (res.message || '無法取得授權'), 'error');
+      }
+    } catch (err) {
+      showToast('切換失敗: ' + err.message, 'error');
+    }
+  }
+
   // ====================================================
   // 帳號申請審核管理 (超級使用者專用)
   // ====================================================
@@ -1521,17 +1563,48 @@
     }
   }
 
+  function resetAllFilters() {
+    state.filters.keyword = '';
+    state.filters.category = 'all';
+    state.filters.status = 'all';
+    if (dom.filterKeyword) dom.filterKeyword.value = '';
+    if (dom.filterCategory) dom.filterCategory.value = 'all';
+    if (dom.filterStatus) dom.filterStatus.value = 'all';
+    loadDashboardData();
+    showToast('已重設所有篩選條件', 'info');
+  }
+
   function renderStats() {
     if (!state.stats) return;
     const s = state.stats;
-    dom.statTotalAmount.textContent = formatCurrency(s.total_amount);
-    dom.statTotalCount.textContent = `共 ${s.total_claims} 筆申請`;
+    const totalClaims = Number(s.total_claims) || 0;
+    const totalAmount = Number(s.total_amount) || 0;
+    const pendingCount = Number(s.pending_count) || 0;
+    const pendingAmount = Number(s.pending_amount) || 0;
+    const disbursedCount = Number(s.disbursed_count) || 0;
+    const approvedCount = Number(s.approved_count) || 0;
+    const disbursedAmount = Number(s.disbursed_amount) || 0;
+    const approvedAmount = Number(s.approved_amount) || 0;
 
-    dom.statPendingAmount.textContent = formatCurrency(s.pending_amount);
-    dom.statPendingCount.textContent = `待審核 ${s.pending_count} 筆`;
+    dom.statTotalAmount.textContent = formatCurrency(totalAmount);
+    dom.statTotalCount.textContent = `共 ${totalClaims} 筆申請`;
 
-    dom.statDisbursedAmount.textContent = formatCurrency(s.disbursed_amount + s.approved_amount);
-    dom.statDisbursedCount.textContent = `已核准/撥款 ${s.disbursed_count + s.approved_count} 筆`;
+    dom.statPendingAmount.textContent = formatCurrency(pendingAmount);
+    dom.statPendingCount.textContent = `待審核 ${pendingCount} 筆`;
+
+    dom.statDisbursedAmount.textContent = formatCurrency(disbursedAmount + approvedAmount);
+    dom.statDisbursedCount.textContent = `已核准/撥款 ${disbursedCount + approvedCount} 筆`;
+
+    // 依當前狀態篩選高亮 KPI 卡片
+    if (dom.kpiCardTotal) {
+      dom.kpiCardTotal.classList.toggle('active', state.filters.status === 'all' || !state.filters.status);
+    }
+    if (dom.kpiCardPending) {
+      dom.kpiCardPending.classList.toggle('active', state.filters.status === 'pending');
+    }
+    if (dom.kpiCardDisbursed) {
+      dom.kpiCardDisbursed.classList.toggle('active', state.filters.status === 'approved' || state.filters.status === 'disbursed');
+    }
 
     // 類別支出視覺標籤
     dom.breakdownMonthTag.textContent = state.filters.month ? `${state.filters.month} 月份` : '全部期間';
@@ -1546,26 +1619,94 @@
       '其他': 'color-other'
     };
 
+    // 產生「全部類別」快捷切換晶片標籤
+    const allPill = document.createElement('div');
+    const isAllActive = !state.filters.category || state.filters.category === 'all';
+    allPill.className = `cat-summary-pill ${isAllActive ? 'active' : ''}`;
+    allPill.setAttribute('role', 'button');
+    allPill.setAttribute('title', isAllActive ? '目前已顯示全部類別明細' : '點擊查看全部類別明細');
+    allPill.innerHTML = `
+      <span class="cat-dot" style="background:#94A3B8;"></span>
+      <span class="cat-name">全部類別</span>
+      <span class="cat-amount">${formatCurrency(s.total_amount)}</span>
+    `;
+    allPill.addEventListener('click', () => {
+      state.filters.category = 'all';
+      if (dom.filterCategory) dom.filterCategory.value = 'all';
+      loadDashboardData();
+    });
+    dom.categoryChipsSummary.appendChild(allPill);
+
     const categories = Object.keys(s.category_breakdown || {});
     categories.forEach(cat => {
       const amount = s.category_breakdown[cat] || 0;
       const pill = document.createElement('div');
-      pill.className = 'cat-summary-pill';
+      const isActive = state.filters.category === cat;
+      pill.className = `cat-summary-pill ${isActive ? 'active' : ''}`;
+      pill.setAttribute('role', 'button');
+      pill.setAttribute('title', isActive ? `點擊取消篩選「${cat}」` : `點擊快速過濾「${cat}」明細`);
       pill.innerHTML = `
         <span class="cat-dot ${catClasses[cat] || 'color-other'}"></span>
         <span class="cat-name">${escapeHtml(cat)}</span>
         <span class="cat-amount">${formatCurrency(amount)}</span>
       `;
+      pill.addEventListener('click', () => {
+        if (state.filters.category === cat) {
+          state.filters.category = 'all';
+        } else {
+          state.filters.category = cat;
+        }
+        if (dom.filterCategory) dom.filterCategory.value = state.filters.category;
+        loadDashboardData();
+      });
       dom.categoryChipsSummary.appendChild(pill);
     });
   }
 
   function renderClaimsTable() {
     dom.claimsTbody.innerHTML = '';
-    dom.tableRecordCount.textContent = `共 ${state.claims.length} 筆`;
+
+    const hasCategoryFilter = state.filters.category && state.filters.category !== 'all';
+    const hasStatusFilter = state.filters.status && state.filters.status !== 'all';
+    const hasKeywordFilter = Boolean(state.filters.keyword);
+    const isFiltered = hasCategoryFilter || hasStatusFilter || hasKeywordFilter;
+
+    let filterDescList = [];
+    if (hasCategoryFilter) filterDescList.push(`類別: ${state.filters.category}`);
+    if (hasStatusFilter) {
+      const stMap = { pending: '待初審', acc_approved: '待終審', approved: '已核准', disbursed: '已核銷', rejected: '已退回' };
+      filterDescList.push(`狀態: ${stMap[state.filters.status] || state.filters.status}`);
+    }
+    if (hasKeywordFilter) filterDescList.push(`搜尋: "${state.filters.keyword}"`);
+
+    dom.tableRecordCount.textContent = isFiltered
+      ? `篩選符合: ${state.claims.length} 筆 (${filterDescList.join(' | ')})`
+      : `共 ${state.claims.length} 筆`;
 
     if (state.claims.length === 0) {
       dom.emptyState.classList.remove('hidden');
+      const emptyTitle = dom.emptyState.querySelector('.empty-title');
+      const emptyDesc = dom.emptyState.querySelector('.empty-desc');
+      if (isFiltered) {
+        if (emptyTitle) emptyTitle.textContent = '查無符合條件之零用金申請明細';
+        if (emptyDesc) {
+          const userScopeNotice = state.user && state.user.role === 'employee'
+            ? `<div style="margin-top: 6px; color: #F59E0B; font-size: 12px;">💡 提示：您目前身分為【一般同仁】，僅能查閱本人單據。若需審核或查閱全公司資料，請於右上角切換至【超級管理者】或【財務會計】視角。</div>`
+            : '';
+          emptyDesc.innerHTML = `
+            當前篩選條件下查無任何單據，請調整條件或一鍵清除。<br>
+            ${userScopeNotice}
+            <button type="button" id="btn-empty-reset" class="btn btn-outline btn-sm" style="margin-top: 10px; cursor: pointer;">
+              🔄 清除條件顯示全部單據
+            </button>
+          `;
+          const emptyResetBtn = document.getElementById('btn-empty-reset');
+          if (emptyResetBtn) emptyResetBtn.addEventListener('click', resetAllFilters);
+        }
+      } else {
+        if (emptyTitle) emptyTitle.textContent = '查無符合條件之零用金申請';
+        if (emptyDesc) emptyDesc.textContent = '請點擊上方「填寫零用金申請」新增單據';
+      }
       return;
     }
     dom.emptyState.classList.add('hidden');
@@ -2364,6 +2505,19 @@
       executeLogin(username, password);
     });
 
+    // 1-1. 示範身分一鍵快速填入與登入
+    const demoBtns = document.querySelectorAll('.btn-demo-account');
+    demoBtns.forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        const u = btn.getAttribute('data-user');
+        const p = btn.getAttribute('data-pass');
+        if (dom.inputLoginUser) dom.inputLoginUser.value = u;
+        if (dom.inputLoginPass) dom.inputLoginPass.value = p;
+        executeLogin(u, p);
+      });
+    });
+
     // 2. 登出
     dom.btnLogout.addEventListener('click', () => {
       api.clearSession();
@@ -2379,13 +2533,15 @@
       searchTimer = setTimeout(() => {
         state.filters.keyword = dom.filterKeyword.value.trim();
         loadDashboardData();
-      }, 300);
+      }, 250);
     });
 
-    dom.filterMonth.addEventListener('change', () => {
+    const handleMonthChange = () => {
       state.filters.month = dom.filterMonth.value;
       loadDashboardData();
-    });
+    };
+    dom.filterMonth.addEventListener('change', handleMonthChange);
+    dom.filterMonth.addEventListener('input', handleMonthChange);
 
     dom.filterCategory.addEventListener('change', () => {
       state.filters.category = dom.filterCategory.value;
@@ -2397,10 +2553,60 @@
       loadDashboardData();
     });
 
-    dom.btnRefreshList.addEventListener('click', () => {
+    if (dom.selectRoleSwitch) {
+      dom.selectRoleSwitch.addEventListener('change', () => {
+        switchActiveRole(dom.selectRoleSwitch.value);
+      });
+    }
+
+    if (dom.btnResetFilters) {
+      dom.btnResetFilters.addEventListener('click', resetAllFilters);
+    }
+
+    // KPI 統計卡片點擊連動篩選狀態
+    if (dom.kpiCardTotal) {
+      dom.kpiCardTotal.addEventListener('click', () => {
+        state.filters.status = 'all';
+        if (dom.filterStatus) dom.filterStatus.value = 'all';
+        loadDashboardData();
+      });
+    }
+
+    if (dom.kpiCardPending) {
+      dom.kpiCardPending.addEventListener('click', () => {
+        state.filters.status = state.filters.status === 'pending' ? 'all' : 'pending';
+        if (dom.filterStatus) dom.filterStatus.value = state.filters.status;
+        loadDashboardData();
+      });
+    }
+
+    if (dom.kpiCardDisbursed) {
+      dom.kpiCardDisbursed.addEventListener('click', () => {
+        state.filters.status = (state.filters.status === 'disbursed' || state.filters.status === 'approved') ? 'all' : 'disbursed';
+        if (dom.filterStatus) dom.filterStatus.value = state.filters.status;
+        loadDashboardData();
+      });
+    }
+
+    const triggerRefresh = () => {
+      if (dom.btnRefreshList) {
+        dom.btnRefreshList.classList.add('btn-spin-anim');
+        setTimeout(() => dom.btnRefreshList && dom.btnRefreshList.classList.remove('btn-spin-anim'), 600);
+      }
+      if (dom.btnRefreshListMini) {
+        dom.btnRefreshListMini.classList.add('btn-spin-anim');
+        setTimeout(() => dom.btnRefreshListMini && dom.btnRefreshListMini.classList.remove('btn-spin-anim'), 600);
+      }
       loadDashboardData();
       showToast('已重新整理資料清單', 'info');
-    });
+    };
+
+    if (dom.btnRefreshList) {
+      dom.btnRefreshList.addEventListener('click', triggerRefresh);
+    }
+    if (dom.btnRefreshListMini) {
+      dom.btnRefreshListMini.addEventListener('click', triggerRefresh);
+    }
 
     // 6. 匯出報表下拉切換
     dom.btnExportDropdown.addEventListener('click', e => {

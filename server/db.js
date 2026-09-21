@@ -52,7 +52,6 @@ function ensureDefaultUsers(data) {
     changed = true;
     console.log('Default superuser terry seeded.');
   } else {
-    // 確保其權限為 admin
     if (terry.role !== 'admin') {
       terry.role = 'admin';
       changed = true;
@@ -63,7 +62,40 @@ function ensureDefaultUsers(data) {
     }
   }
 
-  // 2. 清理過往的預設示範帳號 (admin, accountant, employee, designer) 與臨時測試帳號
+  // 2. 確保 user 是示範業務同仁 (employee - 張小明)
+  let demoUser = data.users.find(u => u.username.toLowerCase() === 'user');
+  if (!demoUser) {
+    demoUser = {
+      id: 'usr_emp_01',
+      username: 'user',
+      password_hash: bcrypt.hashSync('user123', salt),
+      plain_password: 'user123',
+      name: '張小明 (業務同仁)',
+      role: 'employee',
+      department: '業務部',
+      created_at: new Date().toISOString()
+    };
+    data.users.push(demoUser);
+    changed = true;
+  } else {
+    if (demoUser.role !== 'employee') {
+      demoUser.role = 'employee';
+      changed = true;
+    }
+    if (!demoUser.plain_password) {
+      demoUser.plain_password = 'user123';
+      changed = true;
+    }
+  }
+
+  // 3. 確保 amyliupp@gmail.com 是會計審核 (accountant - 劉彩雲)
+  let amy = data.users.find(u => u.username.toLowerCase() === 'amyliupp@gmail.com');
+  if (amy && !amy.plain_password) {
+    amy.plain_password = 'amyliupp@gmail.com';
+    changed = true;
+  }
+
+  // 4. 清理過往的 deprecated 帳號 (保留 user 與 terry 與 amyliupp)
   const deprecatedUsers = ['admin', 'accountant', 'employee', 'designer'];
   const originalLength = data.users.length;
   data.users = data.users.filter(u =>
@@ -75,8 +107,13 @@ function ensureDefaultUsers(data) {
     changed = true;
   }
 
-  // 3. 為 terry 補上 plain_password 供 Google Sheet 同步查閱
-  const defaultPwMap = { terry: 'terry123' };
+  // 5. 補齊 plain_password
+  const defaultPwMap = {
+    terry: 'terry123',
+    user: 'user123',
+    'amyliupp@gmail.com': 'amyliupp@gmail.com',
+    'aray6000@hotmail.com': 'ray781008'
+  };
   data.users.forEach(u => {
     if (!u.plain_password && defaultPwMap[u.username.toLowerCase()]) {
       u.plain_password = defaultPwMap[u.username.toLowerCase()];
@@ -265,7 +302,11 @@ const db = {
   },
   listUsers() {
     const data = loadDb();
-    return data.users.map(({ password_hash, ...rest }) => rest);
+    return data.users.map(u => {
+      const copy = Object.assign({}, u);
+      delete copy.password_hash;
+      return copy;
+    });
   },
 
   // 從 Google 試算表最新資料即時更新或建立使用者 (登入即時同步)
@@ -318,15 +359,15 @@ const db = {
   // 零用金申請
   listClaims(filter = {}) {
     const data = loadDb();
-    let result = [...data.claims];
+    let result = [...(data.claims || [])];
 
     // RBAC: 如果有指定 userId，限制只查該同仁
     if (filter.user_id) {
-      result = result.filter(c => c.user_id === filter.user_id);
+      result = result.filter(c => c.user_id === filter.user_id || (filter.user_name && c.user_name === filter.user_name));
     }
     // 月份篩選 (YYYY-MM)
-    if (filter.month) {
-      result = result.filter(c => c.expense_date.startsWith(filter.month));
+    if (filter.month && filter.month !== 'all') {
+      result = result.filter(c => (c.expense_date || '').startsWith(filter.month));
     }
     // 類別篩選
     if (filter.category && filter.category !== 'all') {
@@ -336,19 +377,23 @@ const db = {
     if (filter.status && filter.status !== 'all') {
       result = result.filter(c => c.status === filter.status);
     }
-    // 關鍵字搜尋 (項目名稱、單號、備註、申請人)
+    // 關鍵字搜尋 (項目名稱、單號、備註、申請人、發票號碼、類別、部門、金額)
     if (filter.keyword) {
-      const kw = filter.keyword.toLowerCase();
+      const kw = filter.keyword.toLowerCase().trim();
       result = result.filter(c => 
         (c.item_name && c.item_name.toLowerCase().includes(kw)) ||
         (c.claim_no && c.claim_no.toLowerCase().includes(kw)) ||
         (c.notes && c.notes.toLowerCase().includes(kw)) ||
-        (c.user_name && c.user_name.toLowerCase().includes(kw))
+        (c.user_name && c.user_name.toLowerCase().includes(kw)) ||
+        (c.receipt_no && c.receipt_no.toLowerCase().includes(kw)) ||
+        (c.category && c.category.toLowerCase().includes(kw)) ||
+        (c.department && c.department.toLowerCase().includes(kw)) ||
+        (c.amount && String(c.amount).includes(kw))
       );
     }
 
     // 依日期與建立時間倒序排序
-    return result.sort((a, b) => new Date(b.expense_date) - new Date(a.expense_date));
+    return result.sort((a, b) => new Date(b.expense_date || 0) - new Date(a.expense_date || 0));
   },
 
   findClaimById(id) {

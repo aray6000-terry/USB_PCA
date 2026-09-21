@@ -721,23 +721,48 @@ textarea:focus {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 6px 14px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   font-size: 12px;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
 }
 .cat-summary-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
-.cat-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.cat-summary-pill.active {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: #3B82F6;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
 }
-.cat-name { color: var(--text-muted); }
-.cat-amount { font-weight: 700; color: var(--text-main); }
+.cat-summary-pill.active .cat-name {
+  color: #93C5FD;
+  font-weight: 700;
+}
+.cat-summary-pill.active .cat-amount {
+  color: #FFFFFF;
+}
+
+.kpi-item.kpi-clickable {
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  transition: all 0.2s ease;
+}
+.kpi-item.kpi-clickable:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+.kpi-item.kpi-clickable.active {
+  background: rgba(59, 130, 246, 0.16);
+  box-shadow: inset 0 0 0 1.5px #3B82F6;
+}
 
 /* 類別色彩對應 */
 .color-traffic { background-color: #3B82F6; } /* 交通: 藍 */
@@ -787,25 +812,95 @@ textarea:focus {
   font-size: 13px;
 }
 
-.date-select-wrapper,
-.category-select-wrapper,
-.status-select-wrapper {
-  display: flex;
+/* 統一過濾欄位封裝卡 (以月份為首，重新排版) */
+.filter-field-wrapper {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 3px 8px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
 }
-.date-select-wrapper label,
-.category-select-wrapper label,
-.status-select-wrapper label {
+
+.filter-field-wrapper:hover,
+.filter-field-wrapper:focus-within {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+}
+
+.filter-field-wrapper label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: #94A3B8;
+  white-space: nowrap;
+  margin-bottom: 0;
 }
-.date-select-wrapper input,
-.category-select-wrapper select,
-.status-select-wrapper select {
-  padding: 8px 12px;
-  font-size: 13px;
-  width: auto;
+
+.filter-field-wrapper input,
+.filter-field-wrapper select {
+  background: transparent !important;
+  color: #F8FAFC !important;
+  border: none !important;
+  padding: 5px 6px !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.filter-field-wrapper select option {
+  background: #0F172A;
+  color: #F8FAFC;
+  padding: 6px;
+}
+
+/* 重新整理按鈕 (緊隨過濾選單) */
+.btn-filter-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+  padding: 6px 13px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-filter-refresh:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45) !important;
+}
+
+.btn-spin-anim svg {
+  animation: spinFilter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes spinFilter {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 關鍵字搜尋框 (移至末尾，精巧不佔版面) */
+.filter-search-tail {
+  min-width: 170px;
+  max-width: 210px;
+  margin-left: 2px;
+}
+.filter-search-tail input {
+  padding: 6px 10px 6px 32px !important;
+  font-size: 12px !important;
+  background: rgba(30, 41, 59, 0.5) !important;
+  border-radius: 8px !important;
 }
 
 .toolbar-actions {
@@ -3060,4 +3155,113 @@ textarea:focus {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
+}
+
+/* ====================================================
+   身分視角切換器與示範身分面板樣式
+   ==================================================== */
+.role-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 4px 10px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.role-switch-wrapper:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+}
+
+.role-switch-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94A3B8;
+  white-space: nowrap;
+}
+
+.role-switch-select {
+  background: transparent;
+  color: #F8FAFC;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  padding-right: 4px;
+}
+
+.role-switch-select option {
+  background: #0F172A;
+  color: #F8FAFC;
+  padding: 8px;
+}
+
+/* 登入介面示範身分面板 */
+.demo-accounts-panel {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+}
+
+.demo-accounts-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94A3B8;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.demo-accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.btn-demo-account {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 6px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.btn-demo-account:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn-demo-account .demo-icon {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.btn-demo-account .demo-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+.btn-demo-account .demo-role {
+  font-size: 10px;
+  color: #94A3B8;
 }

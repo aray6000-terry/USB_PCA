@@ -170,6 +170,7 @@ router.get('/', (req, res) => {
     // RBAC: 一般員工強制只能看到自己的申請單
     if (req.user.role === 'employee') {
       filter.user_id = req.user.id;
+      filter.user_name = req.user.name;
     } else if (user_id) {
       // 會計與超級使用者可選擇特定同仁篩選
       filter.user_id = user_id;
@@ -197,6 +198,7 @@ router.get('/stats', (req, res) => {
     const filter = { month: currentMonth };
     if (req.user.role === 'employee') {
       filter.user_id = req.user.id;
+      filter.user_name = req.user.name;
     }
 
     const claims = db.listClaims(filter);
