@@ -2505,19 +2505,6 @@
       executeLogin(username, password);
     });
 
-    // 1-1. 示範身分一鍵快速填入與登入
-    const demoBtns = document.querySelectorAll('.btn-demo-account');
-    demoBtns.forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        const u = btn.getAttribute('data-user');
-        const p = btn.getAttribute('data-pass');
-        if (dom.inputLoginUser) dom.inputLoginUser.value = u;
-        if (dom.inputLoginPass) dom.inputLoginPass.value = p;
-        executeLogin(u, p);
-      });
-    });
-
     // 2. 登出
     dom.btnLogout.addEventListener('click', () => {
       api.clearSession();
