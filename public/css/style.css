@@ -773,111 +773,207 @@ textarea:focus {
 .color-other { background-color: #94A3B8; }   /* 其他: 灰 */
 
 /* ====================================================
-   4. 工具列 Panel
+   4. 工具列 Panel (專業雙層分流排版)
    ==================================================== */
 .toolbar-panel {
-  padding: 16px 20px;
-  margin-bottom: 20px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
-.toolbar-row {
+
+/* 4.1 上層：主要業務操作與功能按鈕區 */
+.toolbar-actions-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
-.toolbar-group {
+
+.actions-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* AI 智慧發票拍照辨識按鈕 */
+.btn-ai-scan {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(196, 181, 253, 0.35);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-ai-scan:hover {
+  background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+  transform: translateY(-1px);
+}
+.ai-sparkle-icon {
+  font-size: 14px;
+  line-height: 1;
+  animation: pulseSparkle 2s infinite ease-in-out;
+}
+@keyframes pulseSparkle {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.btn-purple {
+  background: rgba(139, 92, 246, 0.15);
+  color: #C084FC;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+.btn-purple:hover {
+  background: rgba(139, 92, 246, 0.25);
+  color: #DDD6FE;
+}
+
+/* 4.2 下層：獨立且優雅的資料過濾條 */
+.toolbar-filter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.filter-strip-left {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  flex: 1;
+  gap: 8px;
 }
 
-.search-input-wrapper {
-  position: relative;
-  min-width: 260px;
-}
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--text-dark);
-}
-.search-input-wrapper input {
-  padding-left: 38px;
-  font-size: 13px;
-}
-
-/* 統一過濾欄位封裝卡 (以月份為首，重新排版) */
-.filter-field-wrapper {
+/* 數據過濾膠囊 (鎖定等高 38px，微光玻璃擬態) */
+.filter-capsule {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(30, 41, 59, 0.7);
+  height: 38px;
+  padding: 0 12px;
+  background: rgba(30, 41, 59, 0.65);
   border: 1px solid rgba(148, 163, 184, 0.2);
-  padding: 3px 8px;
   border-radius: 8px;
-  backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
+  color-scheme: dark;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
-.filter-field-wrapper:hover,
-.filter-field-wrapper:focus-within {
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+.filter-capsule:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(30, 41, 59, 0.85);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.12);
 }
 
-.filter-field-wrapper label {
+.filter-capsule:focus-within {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.filter-capsule label {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 12px;
   font-weight: 600;
   color: #94A3B8;
   white-space: nowrap;
-  margin-bottom: 0;
-}
-
-.filter-field-wrapper input,
-.filter-field-wrapper select {
-  background: transparent !important;
-  color: #F8FAFC !important;
-  border: none !important;
-  padding: 5px 6px !important;
-  font-size: 13px !important;
-  font-weight: 500;
-  outline: none !important;
-  box-shadow: none !important;
+  margin: 0;
+  user-select: none;
   cursor: pointer;
 }
 
-.filter-field-wrapper select option {
-  background: #0F172A;
-  color: #F8FAFC;
-  padding: 6px;
+.capsule-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.icon-month { color: #60A5FA; }
+.icon-cat { color: #FB923C; }
+.icon-status { color: #34D399; }
+
+.filter-capsule input[type="month"],
+.filter-capsule select {
+  height: 100%;
+  background: transparent !important;
+  color: #F8FAFC !important;
+  border: none !important;
+  padding: 0 4px !important;
+  font-size: 13px !important;
+  font-weight: 600;
+  font-family: inherit;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  color-scheme: dark;
 }
 
-/* 重新整理按鈕 (緊隨過濾選單) */
+.filter-capsule input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+.filter-capsule select option {
+  background: #0F172A;
+  color: #F8FAFC;
+  padding: 8px;
+}
+
+/* 篩選重新整理按鈕 (緊隨過濾選單，立竿見影) */
 .btn-filter-refresh {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
-  border: 1px solid rgba(59, 130, 246, 0.5) !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
-  padding: 6px 13px !important;
+  height: 38px;
+  padding: 0 16px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
   border-radius: 8px !important;
-  transition: all 0.2s ease !important;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(147, 197, 253, 0.35) !important;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35) !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-sizing: border-box;
 }
 
 .btn-filter-refresh:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45) !important;
+  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%) !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.5) !important;
+}
+
+.btn-filter-refresh svg {
+  width: 15px;
+  height: 15px;
 }
 
 .btn-spin-anim svg {
@@ -890,23 +986,91 @@ textarea:focus {
   }
 }
 
-/* 關鍵字搜尋框 (移至末尾，精巧不佔版面) */
-.filter-search-tail {
-  min-width: 170px;
-  max-width: 210px;
-  margin-left: 2px;
-}
-.filter-search-tail input {
-  padding: 6px 10px 6px 32px !important;
+/* 篩選重設按鈕 */
+.btn-filter-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 38px;
+  padding: 0 14px !important;
   font-size: 12px !important;
-  background: rgba(30, 41, 59, 0.5) !important;
+  font-weight: 500 !important;
   border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #94A3B8 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box;
 }
 
-.toolbar-actions {
+.btn-filter-reset:hover {
+  color: #F87171 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.btn-filter-reset svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 右側關鍵字搜尋膠囊 */
+.filter-strip-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+}
+
+.filter-search-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  width: 220px;
+  padding: 0 12px;
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.filter-search-capsule:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(30, 41, 59, 0.85);
+}
+
+.filter-search-capsule:focus-within {
+  width: 260px;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.filter-search-capsule svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-dark);
+  flex-shrink: 0;
+}
+
+.filter-search-capsule input {
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: #FFFFFF !important;
+  font-size: 13px !important;
+  font-family: inherit;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.filter-search-capsule input::placeholder {
+  color: #64748B;
+  font-size: 12px;
 }
 
 /* 下拉選單組件 */
@@ -1608,22 +1772,30 @@ textarea:focus {
   .header-left, .header-right {
     justify-content: space-between;
   }
-  .toolbar-row {
+  .toolbar-actions-bar {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
-  .toolbar-group {
+  .actions-left, .actions-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .toolbar-filter-strip {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
-  .search-input-wrapper {
-    min-width: 100%;
+  .filter-strip-left {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
   }
-  .toolbar-actions {
-    justify-content: stretch;
+  .filter-strip-right {
+    width: 100%;
   }
-  .toolbar-actions .btn {
-    flex: 1;
+  .filter-search-capsule {
+    width: 100% !important;
   }
   .form-row {
     flex-direction: column;

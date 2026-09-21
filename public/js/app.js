@@ -2595,6 +2595,19 @@
       dom.btnRefreshListMini.addEventListener('click', triggerRefresh);
     }
 
+    if (dom.btnResetFilters) {
+      dom.btnResetFilters.addEventListener('click', () => {
+        state.filters.category = 'all';
+        state.filters.status = 'all';
+        state.filters.keyword = '';
+        if (dom.filterCategory) dom.filterCategory.value = 'all';
+        if (dom.filterStatus) dom.filterStatus.value = 'all';
+        if (dom.filterKeyword) dom.filterKeyword.value = '';
+        loadDashboardData();
+        showToast('已重設所有篩選條件', 'info');
+      });
+    }
+
     // 6. 匯出報表下拉切換
     dom.btnExportDropdown.addEventListener('click', e => {
       e.stopPropagation();
