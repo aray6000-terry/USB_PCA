@@ -874,6 +874,116 @@ class GoogleSheetService {
     const users = await this.fetchUsersFromSheet();
     return users.find(u => u.username.toLowerCase() === target) || null;
   }
+
+  // 從 Google 試算表拉取所有零用金單據並更新本地資料庫 (支援 GAS 雙向拉取)
+  async fetchClaimsFromSheet() {
+    const config = this.getConfig();
+    if (!config.isConfigured) throw new Error('未設定 Google 試算表連線資訊');
+
+    let sheetClaims = [];
+
+    // 1. GAS 模式 (支援以 sendGasRequest 讀取)
+    if (config.isGasConfigured) {
+      try {
+        const payload = { action: 'get_claims', timestamp: Date.now() };
+        const parsed = await sendGasRequest(config.gasUrl, payload, 6000);
+        if (parsed && Array.isArray(parsed.claims)) {
+          sheetClaims = parsed.claims;
+        }
+      } catch (err) {
+        console.warn('[GAS-FETCH-CLAIMS-WARN] 無法從 GAS 獲取單據:', err.message);
+      }
+    }
+
+    // 2. Service Account 模式 (如果 GAS 沒取到且有 Service Account)
+    if (sheetClaims.length === 0 && config.isServiceAccountConfigured) {
+      try {
+        const { auth, spreadsheetId, sheetName } = this.getAuthClient();
+        const sheets = google.sheets({ version: 'v4', auth });
+        const res = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: `${sheetName || '零用金申請明細'}!A1:N500`
+        });
+        const rows = res.data.values || [];
+        if (rows.length >= 2) {
+          const headers = rows[0].map(h => String(h || '').trim());
+          let claimNoIdx = -1, dateIdx = -1, userIdx = -1, deptIdx = -1, catIdx = -1, itemIdx = -1, amountIdx = -1, rcptNoIdx = -1, notesIdx = -1, statusIdx = -1, urlIdx = -1;
+          headers.forEach((h, idx) => {
+            if (h.includes('單號')) claimNoIdx = idx;
+            else if (h.includes('消費日期') || h.includes('日期')) dateIdx = idx;
+            else if (h.includes('申請人') || h.includes('同仁')) userIdx = idx;
+            else if (h.includes('部門')) deptIdx = idx;
+            else if (h.includes('類別')) catIdx = idx;
+            else if (h.includes('項目')) itemIdx = idx;
+            else if (h.includes('金額')) amountIdx = idx;
+            else if (h.includes('發票') || h.includes('收據號碼')) rcptNoIdx = idx;
+            else if (h.includes('備註')) notesIdx = idx;
+            else if (h.includes('狀態')) statusIdx = idx;
+            else if (h.includes('憑證') || h.includes('Drive')) urlIdx = idx;
+          });
+          if (claimNoIdx === -1) claimNoIdx = 0;
+          if (dateIdx === -1) dateIdx = 2;
+          if (userIdx === -1) userIdx = 3;
+          if (deptIdx === -1) deptIdx = 4;
+          if (catIdx === -1) catIdx = 5;
+          if (itemIdx === -1) itemIdx = 6;
+          if (amountIdx === -1) amountIdx = 7;
+          if (rcptNoIdx === -1) rcptNoIdx = 8;
+          if (notesIdx === -1) notesIdx = 9;
+          if (statusIdx === -1) statusIdx = 10;
+          if (urlIdx === -1) urlIdx = 12;
+
+          for (let i = 1; i < rows.length; i++) {
+            const r = rows[i];
+            const claimNo = r[claimNoIdx] ? String(r[claimNoIdx]).trim() : '';
+            if (!claimNo) continue;
+            let statusRaw = r[statusIdx] ? String(r[statusIdx]).trim() : '';
+            let status = 'pending';
+            if (statusRaw.includes('撥款') || statusRaw.includes('完成') || statusRaw === 'disbursed') status = 'disbursed';
+            else if (statusRaw.includes('待撥款') || statusRaw.includes('核准') || statusRaw === 'approved') status = 'approved';
+            else if (statusRaw.includes('待終審') || statusRaw === 'acc_approved') status = 'acc_approved';
+            else if (statusRaw.includes('退回') || statusRaw === 'rejected') status = 'rejected';
+
+            let rcptUrl = r[urlIdx] ? String(r[urlIdx]).trim() : '';
+            const matchLink = rcptUrl.match(/HYPERLINK\("([^"]+)"/i);
+            if (matchLink) rcptUrl = matchLink[1];
+
+            sheetClaims.push({
+              claim_no: claimNo,
+              expense_date: r[dateIdx] ? String(r[dateIdx]).trim() : '',
+              user_name: r[userIdx] ? String(r[userIdx]).trim() : '',
+              department: r[deptIdx] ? String(r[deptIdx]).trim() : '',
+              category: r[catIdx] ? String(r[catIdx]).trim() : '其他',
+              item_name: r[itemIdx] ? String(r[itemIdx]).trim() : '',
+              amount: Number(r[amountIdx]) || 0,
+              receipt_no: r[rcptNoIdx] ? String(r[rcptNoIdx]).trim() : '',
+              notes: r[notesIdx] ? String(r[notesIdx]).trim() : '',
+              status: status,
+              receipt_url: rcptUrl || ''
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('[SA-FETCH-CLAIMS-WARN] 無法從 Service Account 獲取單據:', err.message);
+      }
+    }
+
+    if (sheetClaims.length > 0) {
+      const stats = db.upsertClaimsFromSheet(sheetClaims);
+      db.updateConfig({ last_sync_time: new Date().toISOString() });
+      return {
+        success: true,
+        sheet_count: sheetClaims.length,
+        ...stats,
+        message: `成功從 Google 試算表拉取 ${sheetClaims.length} 筆單據（新增 ${stats.imported} 筆，更新 ${stats.updated} 筆，系統現有共 ${stats.total} 筆）`
+      };
+    }
+
+    return {
+      success: false,
+      message: '未能從 Google 試算表讀取到單據資料，請確認試算表「零用金申請明細」工作表非空並已更新 Code.gs 腳本'
+    };
+  }
 }
 
 module.exports = new GoogleSheetService();

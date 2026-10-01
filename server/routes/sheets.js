@@ -49,7 +49,7 @@ router.post('/test', requireRole('accountant', 'admin'), async (req, res) => {
   }
 });
 
-// 4. 手動全量同步至 Google Sheets
+// 4. 手動全量同步至 Google Sheets (Push)
 router.post('/sync', requireRole('accountant', 'admin'), async (req, res) => {
   try {
     const result = await googleSheetService.syncAllClaims();
@@ -60,6 +60,16 @@ router.post('/sync', requireRole('accountant', 'admin'), async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: `同步失敗: ${err.message}` });
+  }
+});
+
+// 4-1. 手動自 Google Sheets 拉取所有最新單據至本機系統 (雙向同步 - Pull)
+router.post('/pull', requireRole('accountant', 'admin'), async (req, res) => {
+  try {
+    const result = await googleSheetService.fetchClaimsFromSheet();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: `拉取單據失敗: ${err.message}` });
   }
 });
 

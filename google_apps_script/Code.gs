@@ -73,6 +73,18 @@ function doGet(e) {
     });
   }
 
+  // 支援 API 查詢全部零用金申請單據
+  if (e && e.parameter && (e.parameter.action === 'get_claims' || e.parameter.action === 'fetch_claims')) {
+    var claimSheet = getOrCreateClaimSheet(ss);
+    var claimsList = parseClaimRowsFromSheet(claimSheet);
+    return jsonResponse({
+      success: true,
+      version: SCRIPT_VERSION,
+      count: claimsList.length,
+      claims: claimsList
+    });
+  }
+
   var claimSheet = getOrCreateClaimSheet(ss);
   var userSheet = getOrCreateUserSheet(ss);
   var claimCount = Math.max(0, claimSheet.getLastRow() - 1);
@@ -124,6 +136,18 @@ function doPost(e) {
         version: SCRIPT_VERSION,
         count: usersList.length,
         users: usersList
+      });
+    }
+
+    // 0-1. 即時讀取試算表上所有零用金單據 (供雙向拉取同步)
+    if (action === 'get_claims' || action === 'fetch_claims') {
+      var claimSheet = getOrCreateClaimSheet(ss);
+      var claimsList = parseClaimRowsFromSheet(claimSheet);
+      return jsonResponse({
+        success: true,
+        version: SCRIPT_VERSION,
+        count: claimsList.length,
+        claims: claimsList
       });
     }
 
@@ -538,3 +562,97 @@ function parseUserRowsFromSheet(sheet) {
 
   return list;
 }
+
+// 動態解析試算表上的所有申請單據資料列
+function parseClaimRowsFromSheet(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 2) return [];
+
+  var values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+  var headers = values[0].map(function(h) { return String(h || '').trim(); });
+
+  var claimNoIdx = -1, createdAtIdx = -1, dateIdx = -1, nameIdx = -1, deptIdx = -1,
+      catIdx = -1, itemIdx = -1, amountIdx = -1, receiptNoIdx = -1, notesIdx = -1,
+      statusIdx = -1, updatedAtIdx = -1, receiptUrlIdx = -1;
+
+  for (var c = 0; c < headers.length; c++) {
+    var h = headers[c];
+    if (h.indexOf('單號') !== -1) claimNoIdx = c;
+    else if (h.indexOf('申請時間') !== -1) createdAtIdx = c;
+    else if (h.indexOf('消費日期') !== -1 || h.indexOf('日期') !== -1) dateIdx = c;
+    else if (h.indexOf('申請人') !== -1 || h.indexOf('同仁') !== -1) nameIdx = c;
+    else if (h.indexOf('部門') !== -1) deptIdx = c;
+    else if (h.indexOf('類別') !== -1) catIdx = c;
+    else if (h.indexOf('項目') !== -1) itemIdx = c;
+    else if (h.indexOf('金額') !== -1) amountIdx = c;
+    else if (h.indexOf('發票') !== -1 && h.indexOf('號碼') !== -1) receiptNoIdx = c;
+    else if (h.indexOf('備註') !== -1) notesIdx = c;
+    else if (h.indexOf('狀態') !== -1) statusIdx = c;
+    else if (h.indexOf('更新') !== -1) updatedAtIdx = c;
+    else if (h.indexOf('憑證') !== -1 || h.indexOf('相片') !== -1 || h.indexOf('Drive') !== -1) receiptUrlIdx = c;
+  }
+
+  if (claimNoIdx === -1) claimNoIdx = 0;
+  if (createdAtIdx === -1) createdAtIdx = 1;
+  if (dateIdx === -1) dateIdx = 2;
+  if (nameIdx === -1) nameIdx = 3;
+  if (deptIdx === -1) deptIdx = 4;
+  if (catIdx === -1) catIdx = 5;
+  if (itemIdx === -1) itemIdx = 6;
+  if (amountIdx === -1) amountIdx = 7;
+  if (receiptNoIdx === -1) receiptNoIdx = 8;
+  if (notesIdx === -1) notesIdx = 9;
+  if (statusIdx === -1) statusIdx = 10;
+  if (updatedAtIdx === -1) updatedAtIdx = 11;
+  if (receiptUrlIdx === -1) receiptUrlIdx = 12;
+
+  var list = [];
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    var claimNo = String(row[claimNoIdx] || '').trim();
+    if (!claimNo) continue;
+
+    var rawAmount = Number(String(row[amountIdx] || '').replace(/[^0-9.-]+/g, '')) || 0;
+    var rawStatus = String(row[statusIdx] || '').trim();
+    var statusCode = 'pending';
+    if (rawStatus.indexOf('核銷') !== -1 || rawStatus.indexOf('撥款') !== -1 || rawStatus.toLowerCase().indexOf('disbursed') !== -1) {
+      statusCode = 'disbursed';
+    } else if (rawStatus.indexOf('核准') !== -1 || rawStatus.toLowerCase().indexOf('approved') !== -1) {
+      statusCode = 'approved';
+    } else if (rawStatus.indexOf('初審') !== -1 || rawStatus.indexOf('會計') !== -1) {
+      statusCode = 'acc_approved';
+    } else if (rawStatus.indexOf('退回') !== -1 || rawStatus.indexOf('拒絕') !== -1 || rawStatus.toLowerCase().indexOf('rejected') !== -1) {
+      statusCode = 'rejected';
+    }
+
+    var expenseDateStr = '';
+    if (row[dateIdx] instanceof Date) {
+      expenseDateStr = Utilities.formatDate(row[dateIdx], 'Asia/Taipei', 'yyyy-MM-dd');
+    } else {
+      expenseDateStr = String(row[dateIdx] || '').trim();
+    }
+
+    list.push({
+      id: 'clm_' + claimNo.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
+      claim_no: claimNo,
+      expense_date: expenseDateStr,
+      user_name: String(row[nameIdx] || '同仁').trim(),
+      department: String(row[deptIdx] || '一般部門').trim(),
+      category: String(row[catIdx] || '其他').trim(),
+      item_name: String(row[itemIdx] || '').trim(),
+      amount: rawAmount,
+      receipt_no: String(row[receiptNoIdx] || '').trim(),
+      notes: String(row[notesIdx] || '').trim(),
+      status: statusCode,
+      raw_status: rawStatus,
+      receipt_url: String(row[receiptUrlIdx] || '').trim(),
+      created_at: String(row[createdAtIdx] || new Date().toISOString()),
+      sheet_synced: true
+    });
+  }
+
+  return list;
+}
+

@@ -158,6 +158,7 @@
     bannerStatusTitle: document.getElementById('banner-status-title'),
     bannerStatusDesc: document.getElementById('banner-status-desc'),
     btnSyncNow: document.getElementById('btn-sync-now'),
+    btnPullFromSheet: document.getElementById('btn-pull-from-sheet'),
     sheetsConfigSection: document.getElementById('sheets-config-section'),
     formSheetsConfig: document.getElementById('form-sheets-config'),
     cfgEmail: document.getElementById('cfg-email'),
@@ -2919,11 +2920,11 @@
       });
     });
 
-    // 立即全量同步按鈕
+    // 立即全量同步按鈕 (Push)
     dom.btnSyncNow.addEventListener('click', async () => {
       try {
         dom.btnSyncNow.disabled = true;
-        showToast('正在與 Google Sheets 進行全量同步...', 'info');
+        showToast('正在將單據推送到 Google Sheets...', 'info');
         const res = await api.sheets.syncAll();
         showToast(res.message || '同步完成！', 'success');
         checkSheetsStatus();
@@ -2933,6 +2934,28 @@
         dom.btnSyncNow.disabled = false;
       }
     });
+
+    // 從 Google 試算表拉取最新單據按鈕 (Pull)
+    if (dom.btnPullFromSheet) {
+      dom.btnPullFromSheet.addEventListener('click', async () => {
+        try {
+          dom.btnPullFromSheet.disabled = true;
+          showToast('正在自 Google 試算表拉取最新單據...', 'info');
+          const res = await api.sheets.pull();
+          if (res.success) {
+            showToast(res.message || '拉取完成！', 'success');
+            await loadDashboardData();
+            checkSheetsStatus();
+          } else {
+            showToast(res.message || '拉取失敗', 'error');
+          }
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          dom.btnPullFromSheet.disabled = false;
+        }
+      });
+    }
 
     // GAS 測試連線
     if (dom.btnTestGas) {

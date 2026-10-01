@@ -529,6 +529,63 @@ const db = {
       return { application: app };
     }
     return null;
+  },
+
+  // 自 Google 試算表匯入/更新單據 (雙向拉取)
+  upsertClaimsFromSheet(sheetClaims) {
+    if (!Array.isArray(sheetClaims)) return { imported: 0, updated: 0, total: 0 };
+    const data = loadDb();
+    let imported = 0;
+    let updated = 0;
+
+    for (const sc of sheetClaims) {
+      if (!sc.claim_no) continue;
+      const idx = data.claims.findIndex(c => c.claim_no === sc.claim_no);
+      if (idx !== -1) {
+        data.claims[idx] = {
+          ...data.claims[idx],
+          ...sc,
+          id: data.claims[idx].id,
+          user_id: data.claims[idx].user_id || sc.user_id || 'usr_sheet',
+          audit_trail: data.claims[idx].audit_trail || []
+        };
+        updated++;
+      } else {
+        const newClaim = {
+          id: sc.id || `clm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          claim_no: sc.claim_no,
+          user_id: sc.user_id || 'usr_sheet',
+          user_name: sc.user_name || '同仁',
+          department: sc.department || '未分配',
+          category: sc.category || '其他',
+          item_name: sc.item_name || '未填寫',
+          amount: Number(sc.amount) || 0,
+          expense_date: sc.expense_date || new Date().toISOString().slice(0, 10),
+          receipt_no: sc.receipt_no || '',
+          notes: sc.notes || '',
+          receipt_url: sc.receipt_url || '',
+          status: sc.status || 'pending',
+          audit_trail: [
+            {
+              action: 'Google 試算表拉取匯入',
+              by: '系統同步',
+              by_role: 'admin',
+              at: new Date().toISOString(),
+              note: '自 Google 試算表同步匯入'
+            }
+          ],
+          sheet_synced: true,
+          sheet_synced_at: new Date().toISOString(),
+          created_at: sc.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        data.claims.unshift(newClaim);
+        imported++;
+      }
+    }
+
+    saveDb(data);
+    return { imported, updated, total: data.claims.length };
   }
 };
 

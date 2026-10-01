@@ -844,14 +844,24 @@
               <h4 id="banner-status-title">Google Sheets 連線狀態</h4>
               <p id="banner-status-desc">讀取中...</p>
             </div>
-            <button type="button" id="btn-sync-now" class="btn btn-primary btn-sm">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <polyline points="1 20 1 14 7 14"></polyline>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-              </svg>
-              <span>立即全量同步</span>
-            </button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" id="btn-pull-from-sheet" class="btn btn-success btn-sm" title="從 Google 試算表拉取最新所有單據至系統 (雙向同步 - Pull)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                  <path d="M20 21H4"></path>
+                </svg>
+                <span>📥 從試算表拉取單據</span>
+              </button>
+              <button type="button" id="btn-sync-now" class="btn btn-primary btn-sm" title="將本地單據全量推送到 Google 試算表 (Push)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>📤 推送到試算表</span>
+              </button>
+            </div>
           </div>
 
           <!-- 模式切換標籤 -->

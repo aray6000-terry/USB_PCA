@@ -1661,6 +1661,59 @@ class ApiService {
       };
     },
 
+    pull: async () => {
+      if (!this.isCloudMode) {
+        try {
+          return await this.request('/sheets/pull', { method: 'POST' });
+        } catch (e) {
+          if (!e.message.startsWith('CloudModeActive')) throw e;
+        }
+      }
+
+      const cfg = this.getCloudConfig();
+      if (!cfg.google_gas_url) throw new Error('尚未設定 Google 試算表 Webhook 網址');
+
+      let res = null;
+      try {
+        res = await fetch(`${cfg.google_gas_url}?action=get_claims`).then(r => r.json());
+      } catch (err) {
+        try {
+          res = await fetch(cfg.google_gas_url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_claims' })
+          }).then(r => r.json());
+        } catch (e2) {
+          throw new Error('無法自 Google 試算表讀取單據。若您是自行部署 GAS，請確認 Apps Script 部署設定中的「誰可以存取 (Who has access)」設定為「所有人 (Anyone)」');
+        }
+      }
+
+      if (res && res.success && Array.isArray(res.claims)) {
+        let claims = this.getCloudClaims();
+        let imported = 0, updated = 0;
+        for (const sc of res.claims) {
+          if (!sc.claim_no) continue;
+          const idx = claims.findIndex(c => c.claim_no === sc.claim_no);
+          if (idx !== -1) {
+            claims[idx] = { ...claims[idx], ...sc };
+            updated++;
+          } else {
+            claims.unshift(sc);
+            imported++;
+          }
+        }
+        localStorage.setItem('petty_cash_claims', JSON.stringify(claims));
+        return {
+          success: true,
+          count: res.claims.length,
+          imported,
+          updated,
+          message: `自 Google 試算表成功拉取 ${res.claims.length} 筆單據（新增 ${imported} 筆，更新 ${updated} 筆）`
+        };
+      }
+      return { success: false, message: (res && res.message) || '無法自試算表讀取單據' };
+    },
+
     updateConfig: async (configData) => {
       if (!this.isCloudMode) {
         try {
