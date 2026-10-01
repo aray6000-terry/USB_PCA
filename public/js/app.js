@@ -76,9 +76,11 @@
     // Toolbar & Filters
     filterKeyword: document.getElementById('filter-keyword'),
     filterMonth: document.getElementById('filter-month'),
+    btnMonthAll: document.getElementById('btn-month-all'),
     filterCategory: document.getElementById('filter-category'),
     filterStatus: document.getElementById('filter-status'),
     btnResetFilters: document.getElementById('btn-reset-filters'),
+    labelStatTotal: document.getElementById('label-stat-total'),
     kpiCardTotal: document.getElementById('kpi-card-total'),
     kpiCardPending: document.getElementById('kpi-card-pending'),
     kpiCardDisbursed: document.getElementById('kpi-card-disbursed'),
@@ -296,12 +298,12 @@
   // ====================================================
 
   async function initApp() {
-    // 預設月份為當月 (YYYY-MM)
+    // 預設顯示全部月份 (不限制只能填或看當月，所有月份皆可自由填報與查閱)
     const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    state.filters.month = `${yyyy}-${mm}`;
-    dom.filterMonth.value = state.filters.month;
+    state.filters.month = '';
+    if (dom.filterMonth) {
+      dom.filterMonth.value = '';
+    }
     dom.claimDate.value = today.toISOString().split('T')[0];
     if (dom.a4LayoutMode) {
       dom.a4LayoutMode.value = '12';
@@ -1129,6 +1131,11 @@
       if (res.success) {
         showToast(res.message || `成功建立 ${res.count} 筆申請單！`, 'success');
         dom.modalAiOcr.classList.remove('active');
+        const firstMonth = (claimsPayload[0]?.expense_date || '').substring(0, 7);
+        if (state.filters.month && state.filters.month !== 'all' && state.filters.month !== firstMonth) {
+          state.filters.month = firstMonth;
+          if (dom.filterMonth) dom.filterMonth.value = firstMonth;
+        }
         loadDashboardData();
       } else {
         showToast(res.message || '建立失敗', 'error');
@@ -1565,13 +1572,15 @@
 
   function resetAllFilters() {
     state.filters.keyword = '';
+    state.filters.month = '';
     state.filters.category = 'all';
     state.filters.status = 'all';
     if (dom.filterKeyword) dom.filterKeyword.value = '';
+    if (dom.filterMonth) dom.filterMonth.value = '';
     if (dom.filterCategory) dom.filterCategory.value = 'all';
     if (dom.filterStatus) dom.filterStatus.value = 'all';
     loadDashboardData();
-    showToast('已重設所有篩選條件', 'info');
+    showToast('已重設所有篩選條件 (顯示全部月份)', 'info');
   }
 
   function renderStats() {
@@ -1586,6 +1595,9 @@
     const disbursedAmount = Number(s.disbursed_amount) || 0;
     const approvedAmount = Number(s.approved_amount) || 0;
 
+    if (dom.labelStatTotal) {
+      dom.labelStatTotal.textContent = state.filters.month ? `${state.filters.month} 申請總額` : '全部期間申請總額';
+    }
     dom.statTotalAmount.textContent = formatCurrency(totalAmount);
     dom.statTotalCount.textContent = `共 ${totalClaims} 筆申請`;
 
@@ -1691,7 +1703,7 @@
         if (emptyTitle) emptyTitle.textContent = '查無符合條件之零用金申請明細';
         if (emptyDesc) {
           const userScopeNotice = state.user && state.user.role === 'employee'
-            ? `<div style="margin-top: 6px; color: #F59E0B; font-size: 12px;">💡 提示：您目前身分為【一般同仁】，僅能查閱本人單據。若需審核或查閱全公司資料，請於右上角切換至【超級管理者】或【財務會計】視角。</div>`
+            ? `<div style="margin-top: 6px; color: #F59E0B; font-size: 12px;">💡 提示：您目前身分為【一般同仁】，僅能查閱本人單據。若需審核或查閱全公司資料，請使用具備【超級管理者】或【財務會計】權限之帳號登入。</div>`
             : '';
           emptyDesc.innerHTML = `
             當前篩選條件下查無任何單據，請調整條件或一鍵清除。<br>
@@ -1955,6 +1967,7 @@
     };
 
     try {
+      const claimMonth = (payload.expense_date || '').substring(0, 7);
       if (state.currentEditingClaimId) {
         const res = await api.claims.update(state.currentEditingClaimId, payload);
         showToast(res.message || '申請單已成功修改！', 'success');
@@ -1963,6 +1976,12 @@
         showToast(res.message || '零用金申請已成功送出！', 'success');
       }
       dom.modalClaim.classList.remove('active');
+
+      // 若使用者當前處於特定月份篩選，且所新增單據屬於其他月份（如前幾個月），自動切換以確保新建立單據立即可見
+      if (state.filters.month && state.filters.month !== 'all' && state.filters.month !== claimMonth) {
+        state.filters.month = claimMonth;
+        if (dom.filterMonth) dom.filterMonth.value = claimMonth;
+      }
       loadDashboardData();
     } catch (err) {
       showToast(err.message, 'error');
@@ -2529,6 +2548,15 @@
     };
     dom.filterMonth.addEventListener('change', handleMonthChange);
     dom.filterMonth.addEventListener('input', handleMonthChange);
+
+    if (dom.btnMonthAll) {
+      dom.btnMonthAll.addEventListener('click', () => {
+        state.filters.month = '';
+        if (dom.filterMonth) dom.filterMonth.value = '';
+        loadDashboardData();
+        showToast('已切換為顯示全部月份單據', 'info');
+      });
+    }
 
     dom.filterCategory.addEventListener('change', () => {
       state.filters.category = dom.filterCategory.value;

@@ -165,7 +165,12 @@ router.get('/approval-logs/download', requireRole('accountant', 'admin'), (req, 
 router.get('/', (req, res) => {
   try {
     const { month, category, status, keyword, user_id } = req.query;
-    const filter = { month, category, status, keyword };
+    const filter = {
+      month: (month && month !== 'all') ? month : '',
+      category,
+      status,
+      keyword
+    };
 
     // RBAC: 一般員工強制只能看到自己的申請單
     if (req.user.role === 'employee') {
@@ -193,9 +198,10 @@ router.get('/', (req, res) => {
 router.get('/stats', (req, res) => {
   try {
     const { month } = req.query;
-    const currentMonth = month || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-
-    const filter = { month: currentMonth };
+    const filter = {};
+    if (month && month !== 'all') {
+      filter.month = month;
+    }
     if (req.user.role === 'employee') {
       filter.user_id = req.user.id;
       filter.user_name = req.user.name;
@@ -251,7 +257,7 @@ router.get('/stats', (req, res) => {
 
     res.json({
       success: true,
-      month: currentMonth,
+      month: (month && month !== 'all') ? month : '全部期間',
       stats: {
         total_claims: claims.length,
         total_amount: totalAmount,

@@ -206,22 +206,6 @@
         </div>
 
         <div class="header-right">
-          <!-- 身分視角切換器 (支援即時切換視角) -->
-          <div class="role-switch-wrapper" title="即時切換檢視與操作視角">
-            <label for="select-role-switch" class="role-switch-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="8.5" cy="7" r="4"></circle>
-                <polyline points="17 11 19 13 23 9"></polyline>
-              </svg>
-              <span>視角:</span>
-            </label>
-            <select id="select-role-switch" class="role-switch-select">
-              <option value="terry">👑 超級管理者 (陳總監 - 全公司)</option>
-              <option value="amyliupp@gmail.com">💼 財務會計 (劉彩雲 - 全公司)</option>
-              <option value="user">👤 業務同仁 (張小明 - 個人申請範圍)</option>
-            </select>
-          </div>
 
           <!-- 當前使用者資訊卡 -->
           <div class="user-profile-badge">
@@ -271,7 +255,7 @@
               </svg>
             </div>
             <div class="kpi-text">
-              <span class="kpi-label">當月申請總額</span>
+              <span class="kpi-label" id="label-stat-total">申請總額</span>
               <div class="kpi-value-row">
                 <span class="kpi-val" id="stat-total-amount">NT$ 0</span>
                 <span class="kpi-sub" id="stat-total-count">0 筆</span>
@@ -440,7 +424,7 @@
           <!-- 下層：獨立且優雅的資料過濾條 (以月份為首，選完過濾後緊接重新整理) -->
           <div class="toolbar-filter-strip">
             <div class="filter-strip-left">
-              <!-- 月份選擇 -->
+              <!-- 月份選擇 (支援單月篩選與全部月份) -->
               <div class="filter-capsule">
                 <label for="filter-month">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="capsule-icon icon-month">
@@ -451,7 +435,8 @@
                   </svg>
                   <span>月份:</span>
                 </label>
-                <input type="month" id="filter-month">
+                <input type="month" id="filter-month" title="可選擇特定月份篩選，或點擊「全部」顯示所有月份">
+                <button type="button" id="btn-month-all" class="btn-capsule-clear" title="清除月份篩選，顯示全部期間">全部</button>
               </div>
 
               <!-- 類別選擇 -->
@@ -593,6 +578,7 @@
             <div class="form-group flex-1">
               <label for="claim-date">消費日期 <span class="required">*</span></label>
               <input type="date" id="claim-date" required>
+              <span style="color: #64748B; font-size: 11px; margin-top: 3px; display: block;">✓ 支援填報任何月份發票（過去或當月皆可）</span>
             </div>
             <div class="form-group flex-1">
               <label for="claim-category">費用類別 <span class="required">*</span></label>

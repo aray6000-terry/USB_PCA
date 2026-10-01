@@ -945,6 +945,27 @@ textarea:focus {
   padding: 8px;
 }
 
+.btn-capsule-clear {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+  margin-left: 2px;
+}
+
+.btn-capsule-clear:hover {
+  background: rgba(59, 130, 246, 0.35);
+  color: #93C5FD;
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
 /* 篩選重新整理按鈕 (緊隨過濾選單，立竿見影) */
 .btn-filter-refresh {
   display: inline-flex;
