@@ -1504,14 +1504,29 @@ class ApiService {
     recognizeReceipt: async (imageData, geminiApiKey = '') => {
       const apiKey = geminiApiKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_api_key') : '') || '';
 
-      // 1. 本地 Node 後端模式
+      // 1. 第一優先：台灣電子發票 QR Code 即時掃描與精準解碼 (純本機端執行，100% 精準無延遲)
+      try {
+        const qrResult = await this.claims.scanTaiwanInvoiceQr(imageData);
+        if (qrResult && qrResult.receipt_no) {
+          return {
+            success: true,
+            source: 'taiwan_invoice_qrcode',
+            message: `✨ 成功從電子發票 QR Code 辨識出發票號碼：${qrResult.receipt_no}！`,
+            receipts: [qrResult]
+          };
+        }
+      } catch (qrErr) {
+        console.warn('QR Code 解析未觸發或無二維碼:', qrErr.message);
+      }
+
+      // 2. 本地 Node 後端模式
       if (!this.isCloudMode) {
         try {
           const res = await this.request('/claims/recognize-receipt', {
             method: 'POST',
             body: { image_data: imageData, gemini_api_key: apiKey }
           });
-          if (res && res.success && Array.isArray(res.receipts) && res.receipts.length > 0) {
+          if (res && res.success && Array.isArray(res.receipts) && res.receipts.length > 0 && !res.is_mock) {
             return res;
           }
         } catch (e) {
@@ -1521,7 +1536,7 @@ class ApiService {
         }
       }
 
-      // 2. 純前端直連 Google Gemini 1.5 Flash Vision (若使用者有提供 API Key)
+      // 3. 純前端直連 Google Gemini 1.5 Flash Vision (若使用者有提供 API Key)
       if (apiKey) {
         try {
           const directRes = await this.claims.callGeminiDirect(imageData, apiKey);
@@ -1535,32 +1550,155 @@ class ApiService {
           }
         } catch (err) {
           console.warn('前端 Gemini Vision 直連失敗:', err.message);
+          throw new Error('Gemini API 辨識失敗：' + (err.message || '請確認 API Key 是否正確'));
         }
       }
 
-      // 3. 智慧啟發式展示辨識 (模擬真實台灣發票格式，支援離線與即時體驗)
-      const today = new Date().toISOString().substring(0, 10);
-      const prefixes = ['AB', 'CD', 'EF', 'GH', 'JK', 'TW', 'UB', 'VX'];
-      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-      const randomSuffix = Math.floor(10000000 + Math.random() * 90000000);
-      const sampleAmounts = [150, 280, 450, 680, 920, 1250, 1800, 2400];
-      const randomAmt = sampleAmounts[Math.floor(Math.random() * sampleAmounts.length)];
-
+      // 4. 若以上皆無法辨識，絕不回傳假資料，而是明確告知未辨識出真實資訊
       return {
-        success: true,
-        source: 'smart_heuristic',
-        message: '✨ 發票已成功智慧辨識！',
-        receipts: [
-          {
-            expense_date: today,
-            receipt_no: `${prefix}-${randomSuffix}`,
-            amount: randomAmt,
-            category: '餐食',
-            item_name: '公務茶點與外帶餐盒',
-            notes: '統一超商 統編:22555003'
-          }
-        ]
+        success: false,
+        source: 'none',
+        message: apiKey
+          ? '⚠️ 未能於相片中辨識出清晰之發票號碼與金額，請手動確認填寫。'
+          : '⚠️ 照片未偵測到電子發票 QR Code。若為紙本收據，可點擊上方「⚙️ AI設定」設定免費 Gemini Key 啟用相片文字辨識，或請手動填寫發票號碼與金額。'
       };
+    },
+
+    scanTaiwanInvoiceQr: async (imageData) => {
+      if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+
+      // 載入圖片
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = imageData;
+      });
+
+      // 1. 原生 BarcodeDetector (Chrome/Edge/Android 支援)
+      if ('BarcodeDetector' in window) {
+        try {
+          const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+          const barcodes = await barcodeDetector.detect(img);
+          if (barcodes && barcodes.length > 0) {
+            for (const b of barcodes) {
+              const parsed = this.claims.parseTaiwanInvoiceQr(b.rawValue);
+              if (parsed) return parsed;
+            }
+          }
+        } catch (e) {
+          // 降級至 jsQR
+        }
+      }
+
+      // 2. 使用純 JS 的 jsQR 解碼
+      if (typeof window.jsQR === 'function') {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return null;
+
+        const origW = img.naturalWidth || img.width;
+        const origH = img.naturalHeight || img.height;
+        if (!origW || !origH) return null;
+
+        // 多尺度掃描以適應各種手機拍照解析度 (原圖、1200px、800px、1600px)
+        const targetDims = [origW, 1200, 800, 1600].filter((v, idx, arr) => v > 0 && arr.indexOf(v) === idx);
+
+        for (const dim of targetDims) {
+          let w = origW;
+          let h = origH;
+          if (w > dim || h > dim) {
+            const scale = dim / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(img, 0, 0, w, h);
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const code = window.jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
+          if (code && code.data) {
+            const parsed = this.claims.parseTaiwanInvoiceQr(code.data);
+            if (parsed) return parsed;
+          }
+        }
+      }
+
+      return null;
+    },
+
+    parseTaiwanInvoiceQr: (text) => {
+      if (!text || typeof text !== 'string') return null;
+      const clean = text.trim();
+
+      // 1. 標準財政部電子發票 QR Code 規格 (77 碼以上無冒號)
+      // 前10碼: 字軌+8碼數字 (如 AB12345678)
+      // 11-17: 7碼民國年月日 (如 1131002)
+      // 18-21: 4碼隨機碼
+      // 22-29: 8碼銷售額(16進位)
+      // 30-37: 8碼總金額(16進位)
+      // 38-45: 8碼買方統編
+      // 46-53: 8碼賣方統編
+      const stdMatch = clean.match(/^([A-Z]{2}[0-9]{8})([0-9]{7})([0-9a-fA-F]{4})([0-9a-fA-F]{8})([0-9a-fA-F]{8})([0-9]{8})([0-9]{8})/);
+      if (stdMatch) {
+        const rawInv = stdMatch[1];
+        const receiptNo = `${rawInv.substring(0, 2)}-${rawInv.substring(2)}`;
+        const rawDate = stdMatch[2];
+        const year = parseInt(rawDate.substring(0, 3), 10) + 1911;
+        const month = rawDate.substring(3, 5);
+        const day = rawDate.substring(5, 7);
+        const expenseDate = `${year}-${month}-${day}`;
+        const amountHex = stdMatch[5];
+        const amount = parseInt(amountHex, 16);
+        const sellerId = stdMatch[7];
+
+        return {
+          receipt_no: receiptNo,
+          amount: isNaN(amount) ? 0 : amount,
+          expense_date: expenseDate,
+          category: '餐食',
+          item_name: '電子發票消費支出',
+          notes: sellerId && sellerId !== '00000000' ? `賣方統編: ${sellerId}` : '',
+          source: 'taiwan_invoice_qrcode'
+        };
+      }
+
+      // 2. 寬鬆匹配 (含有冒號或分隔符)
+      const invMatch = clean.match(/([A-Z]{2})[-]?([0-9]{8})/);
+      if (invMatch) {
+        const receiptNo = `${invMatch[1]}-${invMatch[2]}`;
+        let expenseDate = '';
+        let amount = 0;
+
+        // 搜尋 7 碼民國年
+        const dateMatch = clean.match(/(?:^|[:\s])([0-9]{7})(?:[:\s]|$)/);
+        if (dateMatch) {
+          const d = dateMatch[1];
+          const y = parseInt(d.substring(0, 3), 10) + 1911;
+          expenseDate = `${y}-${d.substring(3, 5)}-${d.substring(5, 7)}`;
+        }
+
+        // 搜尋金額 (以冒號分割第 5 欄 16 進位，或找包含的 8 碼十六進位)
+        const parts = clean.split(':');
+        if (parts.length >= 5) {
+          const parsedHex = parseInt(parts[4], 16);
+          if (!isNaN(parsedHex) && parsedHex > 0) amount = parsedHex;
+        }
+
+        return {
+          receipt_no: receiptNo,
+          amount: amount,
+          expense_date: expenseDate,
+          category: '餐食',
+          item_name: '發票消費項目',
+          notes: '',
+          source: 'taiwan_invoice_qrcode_loose'
+        };
+      }
+
+      return null;
     },
 
     callGeminiDirect: async (imageData, apiKey) => {

@@ -62,17 +62,15 @@ class AiReceiptService {
       }
     }
 
-    // 2. 若未配置 API Key 或 API 呼叫失敗，提供智能展示辨識模式
-    console.log(`[AI-OCR] 進入智能展示辨識模式 (支援體驗與測試)`);
-    const mockReceipts = this.generateMockRecognizedReceipts();
+    // 2. 若未配置 API Key 或 API 呼叫失敗，絕不捏造假資料
     return {
-      success: true,
-      source: 'smart_heuristic_demo',
-      is_mock: true,
+      success: false,
+      source: 'none',
+      is_mock: false,
       message: apiKey
-        ? 'Gemini 呼叫未成功，已切換至展示模式。請檢查 API Key 是否正確。'
-        : '✨ 已成功辨識發票 (展示模式)！您可於上方填入免費的 Gemini API Key 啟用 100% 真實即時 AI 辨識。',
-      receipts: mockReceipts
+        ? 'Gemini 呼叫未成功，請確認 API Key 是否有效。'
+        : '⚠️ 尚未配置 Gemini API Key，未能進行深度視覺字元辨識。請輸入 API Key 或手動輸入發票資訊。',
+      receipts: []
     };
   }
 

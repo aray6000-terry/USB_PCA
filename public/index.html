@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261002_ocr_v1">
+  <link rel="stylesheet" href="css/style.css?v=20261002_real_ocr_v2">
 </head>
 <body>
   <div id="app">
@@ -626,10 +626,29 @@
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <label style="margin-bottom: 0;">憑證或發票照片 (選填)</label>
-              <span id="ocr-status-badge" class="ocr-badge-ready">
-                ✨ 上傳相片自動辨識發票號碼與金額
-              </span>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span id="ocr-status-badge" class="ocr-badge-ready">
+                  ✨ 上傳相片自動辨識發票號碼與金額
+                </span>
+                <button type="button" id="btn-quick-gemini-key" class="btn-text-subtle" title="設定 Gemini API Key 啟用傳統收據/紙本發票 AI 視覺辨識" style="font-size: 11px; padding: 2px 6px; cursor: pointer; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-surface);">⚙️ AI設定</button>
+              </div>
             </div>
+            
+            <!-- 快速輸入 API Key 面板 (預設收合) -->
+            <div id="quick-gemini-panel" class="hidden" style="margin-bottom: 10px; padding: 10px 12px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 600; color: var(--primary);">🤖 Gemini 1.5 Flash 視覺辨識設定</span>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">免費取得 API Key ↗</a>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <input type="password" id="input-quick-gemini-key" placeholder="貼上您的 Google Gemini API Key (AIzaSy...)" style="flex: 1; font-size: 12px; padding: 4px 8px; height: 30px; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                <button type="button" id="btn-save-quick-gemini-key" class="btn btn-primary" style="padding: 4px 10px; font-size: 12px; height: 30px; white-space: nowrap;">儲存</button>
+              </div>
+              <div style="margin-top: 4px; color: var(--text-muted); font-size: 11px;">
+                💡 電子發票 (含 QR Code) 系統直接本機秒讀！非電子發票 (計程車收據/長條發票) 設定 Key 後即可啟用深度視覺辨識。
+              </div>
+            </div>
+
             <div class="receipt-upload-zone" id="receipt-upload-zone">
               <input type="file" id="claim-receipt-file" accept="image/*" class="file-hidden">
               <div class="upload-prompt" id="upload-prompt">
@@ -1315,9 +1334,10 @@
   </div>
 
   <script src="js/exceljs.min.js"></script>
+  <script src="js/jsqr.min.js"></script>
   <script src="js/html2pdf.bundle.min.js"></script>
-  <script src="js/seed-data.js?v=20261002_ocr_v1"></script>
-  <script src="js/api.js?v=20261002_ocr_v1"></script>
-  <script src="js/app.js?v=20261002_ocr_v1"></script>
+  <script src="js/seed-data.js?v=20261002_real_ocr_v2"></script>
+  <script src="js/api.js?v=20261002_real_ocr_v2"></script>
+  <script src="js/app.js?v=20261002_real_ocr_v2"></script>
 </body>
 </html>

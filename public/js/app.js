@@ -123,6 +123,10 @@
     btnRemoveReceipt: document.getElementById('btn-remove-receipt'),
     ocrStatusBadge: document.getElementById('ocr-status-badge'),
     receiptOcrOverlay: document.getElementById('receipt-ocr-overlay'),
+    btnQuickGeminiKey: document.getElementById('btn-quick-gemini-key'),
+    quickGeminiPanel: document.getElementById('quick-gemini-panel'),
+    inputQuickGeminiKey: document.getElementById('input-quick-gemini-key'),
+    btnSaveQuickGeminiKey: document.getElementById('btn-save-quick-gemini-key'),
 
     // Review Modal
     modalReview: document.getElementById('modal-review'),
@@ -2383,13 +2387,15 @@
           triggerAutofillHighlight(dom.claimCategory);
         }
 
-        // 狀態徽章切換為成功提示
+        // 狀態徽章切換為成功提示 (清楚標明辨識來源)
+        const isQr = r.source && r.source.includes('qrcode');
+        const sourceLabel = isQr ? 'QR Code 秒讀' : 'AI 視覺辨識';
         if (dom.ocrStatusBadge) {
           dom.ocrStatusBadge.className = 'ocr-badge-success';
-          dom.ocrStatusBadge.innerHTML = `✅ 已自動辨識帶入：${r.receipt_no || '無發票號'} | NT$ ${Number(r.amount || 0).toLocaleString('en-US')}`;
+          dom.ocrStatusBadge.innerHTML = `✅ [${sourceLabel}] ${r.receipt_no || ''} | NT$ ${Number(r.amount || 0).toLocaleString('en-US')}`;
         }
 
-        showToast(`✨ 憑證相片辨識成功！已自動帶入：${filledList.join(' 與 ') || '發票內容'}`, 'success');
+        showToast(`✨ 憑證辨識成功 (${sourceLabel})！已自動帶入：${filledList.join(' 與 ') || '發票內容'}`, 'success');
 
         if (receipts.length > 1) {
           setTimeout(() => {
@@ -2397,15 +2403,15 @@
           }, 1200);
         }
       } else {
-        throw new Error('未能識別出清晰的發票文字');
+        throw new Error((res && res.message) || '未能由相片識別出清晰發票資訊');
       }
     } catch (err) {
       console.warn('發票 OCR 辨識提示:', err.message);
       if (dom.ocrStatusBadge) {
         dom.ocrStatusBadge.className = 'ocr-badge-warn';
-        dom.ocrStatusBadge.innerHTML = '⚠️ 未能辨識出清晰號碼，請手動填寫';
+        dom.ocrStatusBadge.innerHTML = '⚠️ 未能自動辨識，請手動確認填寫';
       }
-      showToast('未能由相片清楚辨識發票號碼，請手動確認填寫', 'info');
+      showToast(err.message || '未能由相片辨識出發票資訊，請手動確認填寫', 'warning');
     } finally {
       if (dom.receiptOcrOverlay) {
         dom.receiptOcrOverlay.classList.add('hidden');
@@ -2431,6 +2437,13 @@
     dom.receiptPreviewImg.src = '';
     dom.claimReceiptFile.value = '';
     dom.uploadPrompt.classList.remove('hidden');
+
+    if (dom.quickGeminiPanel) {
+      dom.quickGeminiPanel.classList.add('hidden');
+      if (dom.inputQuickGeminiKey) {
+        dom.inputQuickGeminiKey.value = localStorage.getItem('gemini_api_key') || '';
+      }
+    }
 
     if (dom.ocrStatusBadge) {
       dom.ocrStatusBadge.className = 'ocr-badge-ready';
@@ -2460,6 +2473,13 @@
     dom.amountVerbalPreview.textContent = numberToChineseAmount(claim.amount);
     dom.claimReceiptNo.value = claim.receipt_no || '';
     dom.claimNotes.value = claim.notes || '';
+
+    if (dom.quickGeminiPanel) {
+      dom.quickGeminiPanel.classList.add('hidden');
+      if (dom.inputQuickGeminiKey) {
+        dom.inputQuickGeminiKey.value = localStorage.getItem('gemini_api_key') || '';
+      }
+    }
 
     if (dom.ocrStatusBadge) {
       dom.ocrStatusBadge.className = 'ocr-badge-ready';
@@ -3400,6 +3420,30 @@
         dom.receiptOcrOverlay.classList.add('hidden');
       }
     });
+
+    // 快速 Gemini API Key 面板切換與儲存
+    if (dom.btnQuickGeminiKey && dom.quickGeminiPanel) {
+      dom.btnQuickGeminiKey.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dom.quickGeminiPanel.classList.toggle('hidden');
+        if (!dom.quickGeminiPanel.classList.contains('hidden') && dom.inputQuickGeminiKey) {
+          dom.inputQuickGeminiKey.value = localStorage.getItem('gemini_api_key') || '';
+          dom.inputQuickGeminiKey.focus();
+        }
+      });
+    }
+
+    if (dom.btnSaveQuickGeminiKey && dom.inputQuickGeminiKey) {
+      dom.btnSaveQuickGeminiKey.addEventListener('click', e => {
+        e.preventDefault();
+        const key = dom.inputQuickGeminiKey.value.trim();
+        localStorage.setItem('gemini_api_key', key);
+        if (dom.inputGeminiApiKey) dom.inputGeminiApiKey.value = key;
+        showToast(key ? '🎉 Gemini API Key 已成功儲存！已啟用傳統收據與非電子發票 AI 視覺字元辨識' : '已清除自訂 API Key', 'success');
+        if (dom.quickGeminiPanel) dom.quickGeminiPanel.classList.add('hidden');
+      });
+    }
 
     // 8. 審核操作按鈕與批准金額即時互動
     if (dom.reviewApprovedAmount) {
