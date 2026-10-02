@@ -2535,13 +2535,15 @@
 
     // 5. 篩選工具列事件
     let searchTimer = null;
-    dom.filterKeyword.addEventListener('input', () => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        state.filters.keyword = dom.filterKeyword.value.trim();
-        loadDashboardData();
-      }, 250);
-    });
+    if (dom.filterKeyword) {
+      dom.filterKeyword.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          state.filters.keyword = dom.filterKeyword.value.trim();
+          loadDashboardData();
+        }, 250);
+      });
+    }
 
     const handleMonthChange = () => {
       state.filters.month = dom.filterMonth.value;
