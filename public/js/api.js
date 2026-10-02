@@ -443,7 +443,8 @@ class ApiService {
     const monthTitle = filterInfo.month && filterInfo.month !== 'all'
       ? ` (${filterInfo.month} 月份)`
       : ' (全部期間)';
-    const titleText = `企業零用金支出核銷明細表${monthTitle}`;
+    const userPart = filterInfo.user_name && filterInfo.user_name !== 'all' ? ` - ${filterInfo.user_name}` : '';
+    const titleText = `企業零用金支出核銷明細表${monthTitle}${userPart}`;
 
     sheet.mergeCells('A1:L1');
     const titleRow = sheet.getCell('A1');
@@ -460,7 +461,8 @@ class ApiService {
     sheet.mergeCells('A2:L2');
     const subTitle = sheet.getCell('A2');
     const nowStr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-    subTitle.value = `匯出時間：${nowStr}  |  篩選類別：${filterInfo.category && filterInfo.category !== 'all' ? filterInfo.category : '全部類別'}  |  篩選狀態：${filterInfo.status && filterInfo.status !== 'all' ? (statusLabels[filterInfo.status] || filterInfo.status) : '全部狀態'}  |  總筆數：${claims.length} 筆`;
+    const userLabel = filterInfo.user_name && filterInfo.user_name !== 'all' ? filterInfo.user_name : '全部同仁';
+    subTitle.value = `匯出時間：${nowStr}  |  篩選同仁：${userLabel}  |  篩選類別：${filterInfo.category && filterInfo.category !== 'all' ? filterInfo.category : '全部類別'}  |  篩選狀態：${filterInfo.status && filterInfo.status !== 'all' ? (statusLabels[filterInfo.status] || filterInfo.status) : '全部狀態'}  |  總筆數：${claims.length} 筆`;
     subTitle.font = { name: '微軟正黑體', size: 10, color: { argb: 'FF64748B' } };
     subTitle.alignment = { vertical: 'middle', horizontal: 'left' };
     sheet.getRow(2).height = 24;
@@ -1067,6 +1069,14 @@ class ApiService {
           c.user_name === user.name ||
           (c.department === user.department && user.role !== 'employee')
         );
+      } else {
+        // 超級使用者與會計人員指定特定同仁篩選
+        if (params.user_name && params.user_name !== 'all') {
+          claims = claims.filter(c => c.user_name === params.user_name);
+        }
+        if (params.user_id && params.user_id !== 'all') {
+          claims = claims.filter(c => c.user_id === params.user_id);
+        }
       }
 
       // 狀態篩選
@@ -1114,11 +1124,24 @@ class ApiService {
       return { success: true, claims, count: claims.length, total: claims.length };
     },
 
-    stats: async (month) => {
+    stats: async (monthOrParams, maybeUserName) => {
+      let month = '';
+      let userName = '';
+      if (typeof monthOrParams === 'object' && monthOrParams !== null) {
+        month = monthOrParams.month || '';
+        userName = monthOrParams.user_name || '';
+      } else {
+        month = monthOrParams || '';
+        userName = maybeUserName || '';
+      }
+
       if (!this.isCloudMode) {
         try {
-          const qs = month && month !== 'all' ? `?month=${month}` : '';
-          return await this.request(`/claims/stats${qs}`);
+          const qs = new URLSearchParams();
+          if (month && month !== 'all') qs.append('month', month);
+          if (userName && userName !== 'all') qs.append('user_name', userName);
+          const qStr = qs.toString() ? `?${qs.toString()}` : '';
+          return await this.request(`/claims/stats${qStr}`);
         } catch (e) {
           if (!e.message.startsWith('CloudModeActive')) throw e;
         }
@@ -1131,6 +1154,8 @@ class ApiService {
           c.user_id === user.id ||
           c.user_name === user.name
         );
+      } else if (userName && userName !== 'all') {
+        claims = claims.filter(c => c.user_name === userName);
       }
       const m = (month && month !== 'all') ? month : '';
       const mClaims = m ? claims.filter(c => (c.expense_date || '').startsWith(m)) : claims;

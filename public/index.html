@@ -478,6 +478,20 @@
                 </select>
               </div>
 
+              <!-- 申請同仁選擇 (超級使用者與會計專屬篩選) -->
+              <div class="filter-capsule" id="filter-user-capsule" style="display: none;">
+                <label for="filter-user">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="capsule-icon icon-user" style="color: #6366f1;">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>同仁:</span>
+                </label>
+                <select id="filter-user" title="可選擇特定同仁進行資料篩選與獨立報表匯出">
+                  <option value="all">全部同仁</option>
+                </select>
+              </div>
+
               <!-- 篩選後立即重新整理按鈕 -->
               <button type="button" id="btn-refresh-list" class="btn btn-primary btn-sm btn-filter-refresh" title="立即套用過濾條件並重新整理清單">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -164,7 +164,7 @@ router.get('/approval-logs/download', requireRole('accountant', 'admin'), (req, 
 // 1. 取得申請單清單 (落實 RBAC 權限資料隔離)
 router.get('/', (req, res) => {
   try {
-    const { month, category, status, keyword, user_id } = req.query;
+    const { month, category, status, keyword, user_id, user_name } = req.query;
     const filter = {
       month: (month && month !== 'all') ? month : '',
       category,
@@ -176,9 +176,14 @@ router.get('/', (req, res) => {
     if (req.user.role === 'employee') {
       filter.user_id = req.user.id;
       filter.user_name = req.user.name;
-    } else if (user_id) {
+    } else {
       // 會計與超級使用者可選擇特定同仁篩選
-      filter.user_id = user_id;
+      if (user_name && user_name !== 'all') {
+        filter.user_name = user_name;
+      }
+      if (user_id && user_id !== 'all') {
+        filter.user_id = user_id;
+      }
     }
 
     const claims = db.listClaims(filter);
@@ -197,7 +202,7 @@ router.get('/', (req, res) => {
 // 2. 儀表板統計數據 (依角色自動分流個人 vs 全公司)
 router.get('/stats', (req, res) => {
   try {
-    const { month } = req.query;
+    const { month, user_name, user_id } = req.query;
     const filter = {};
     if (month && month !== 'all') {
       filter.month = month;
@@ -205,6 +210,13 @@ router.get('/stats', (req, res) => {
     if (req.user.role === 'employee') {
       filter.user_id = req.user.id;
       filter.user_name = req.user.name;
+    } else {
+      if (user_name && user_name !== 'all') {
+        filter.user_name = user_name;
+      }
+      if (user_id && user_id !== 'all') {
+        filter.user_id = user_id;
+      }
     }
 
     const claims = db.listClaims(filter);

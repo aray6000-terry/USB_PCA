@@ -9,26 +9,35 @@ router.use(authenticateToken);
 // 匯出 Excel 格式報表 (.xlsx)
 router.get('/excel', async (req, res) => {
   try {
-    const { month, category, status, keyword, user_id } = req.query;
+    const { month, category, status, keyword, user_id, user_name } = req.query;
     const filter = { month, category, status, keyword };
 
     // RBAC: 一般員工僅能匯出自身資料
     if (req.user.role === 'employee') {
       filter.user_id = req.user.id;
-    } else if (user_id) {
-      filter.user_id = user_id;
+      filter.user_name = req.user.name;
+    } else {
+      if (user_name && user_name !== 'all') {
+        filter.user_name = user_name;
+      }
+      if (user_id && user_id !== 'all') {
+        filter.user_id = user_id;
+      }
     }
 
     const claims = db.listClaims(filter);
 
+    const userLabel = (filter.user_name && filter.user_name !== 'all') ? filter.user_name : '';
     const buffer = await exportService.generateExcel(claims, {
       month: month || '全期',
       category: category && category !== 'all' ? category : '全部類別',
-      status: status && status !== 'all' ? status : '全部狀態'
+      status: status && status !== 'all' ? status : '全部狀態',
+      user_name: userLabel
     });
 
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const filename = encodeURIComponent(`零用金明細表_${month || '全部'}_${timestamp}.xlsx`);
+    const userSuffix = userLabel ? `_${userLabel}` : '';
+    const filename = encodeURIComponent(`零用金明細表_${month || '全部'}${userSuffix}_${timestamp}.xlsx`);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${filename}`);
@@ -42,20 +51,27 @@ router.get('/excel', async (req, res) => {
 // 匯出 CSV 格式報表 (.csv)
 router.get('/csv', (req, res) => {
   try {
-    const { month, category, status, keyword, user_id } = req.query;
+    const { month, category, status, keyword, user_id, user_name } = req.query;
     const filter = { month, category, status, keyword };
 
     if (req.user.role === 'employee') {
       filter.user_id = req.user.id;
-    } else if (user_id) {
-      filter.user_id = user_id;
+      filter.user_name = req.user.name;
+    } else {
+      if (user_name && user_name !== 'all') {
+        filter.user_name = user_name;
+      }
+      if (user_id && user_id !== 'all') {
+        filter.user_id = user_id;
+      }
     }
 
     const claims = db.listClaims(filter);
     const csvContent = exportService.generateCsv(claims);
 
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const filename = encodeURIComponent(`零用金明細_${month || '全部'}_${timestamp}.csv`);
+    const userSuffix = (filter.user_name && filter.user_name !== 'all') ? `_${filter.user_name}` : '';
+    const filename = encodeURIComponent(`零用金明細_${month || '全部'}${userSuffix}_${timestamp}.csv`);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${filename}`);

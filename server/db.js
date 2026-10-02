@@ -361,9 +361,11 @@ const db = {
     const data = loadDb();
     let result = [...(data.claims || [])];
 
-    // RBAC: 如果有指定 userId，限制只查該同仁
-    if (filter.user_id) {
+    // RBAC: 如果有指定 userId 或 user_name，限制只查該同仁
+    if (filter.user_id && filter.user_id !== 'all') {
       result = result.filter(c => c.user_id === filter.user_id || (filter.user_name && c.user_name === filter.user_name));
+    } else if (filter.user_name && filter.user_name !== 'all') {
+      result = result.filter(c => c.user_name === filter.user_name);
     }
     // 月份篩選 (YYYY-MM)
     if (filter.month && filter.month !== 'all') {

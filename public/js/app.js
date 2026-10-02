@@ -15,7 +15,8 @@
       month: '',
       category: 'all',
       status: 'all',
-      keyword: ''
+      keyword: '',
+      user_name: ''
     },
     aiOcr: {
       currentImageBase64: null,
@@ -79,6 +80,8 @@
     btnMonthAll: document.getElementById('btn-month-all'),
     filterCategory: document.getElementById('filter-category'),
     filterStatus: document.getElementById('filter-status'),
+    filterUserCapsule: document.getElementById('filter-user-capsule'),
+    filterUser: document.getElementById('filter-user'),
     btnResetFilters: document.getElementById('btn-reset-filters'),
     labelStatTotal: document.getElementById('label-stat-total'),
     kpiCardTotal: document.getElementById('kpi-card-total'),
@@ -766,7 +769,8 @@
     const totalAmount = claimsWithReceipt.reduce((acc, c) => acc + Number(c.amount || 0), 0);
     const monthLabel = state.filters.month ? `${state.filters.month} 月份` : '全部期間';
 
-    dom.a4SummaryHint.textContent = `共 ${claimsWithReceipt.length} 筆憑證照片 | 總金額: ${formatCurrency(totalAmount)} | 自動排版分頁為 ${totalPages} 頁 A4`;
+    const userLabel = state.filters.user_name && state.filters.user_name !== 'all' ? ` [同仁: ${state.filters.user_name}]` : '';
+    dom.a4SummaryHint.textContent = `共 ${claimsWithReceipt.length} 筆憑證照片${userLabel} | 總金額: ${formatCurrency(totalAmount)} | 自動排版分頁為 ${totalPages} 頁 A4`;
 
     // 排滿指定張數自動分頁生成 .a4-sheet
     for (let i = 0; i < claimsWithReceipt.length; i += itemsPerPage) {
@@ -782,9 +786,11 @@
     sheet.className = 'a4-sheet';
 
     const pageSum = pageClaims.reduce((sum, c) => sum + Number(c.amount || 0), 0);
-    const applicantInfo = state.user
-      ? `${escapeHtml(state.user.name)} (${escapeHtml(state.user.department || '企業同仁')})`
-      : '全公司申請';
+    const applicantInfo = (state.filters.user_name && state.filters.user_name !== 'all')
+      ? `${escapeHtml(state.filters.user_name)} (指定同仁報銷)`
+      : (state.user
+          ? `${escapeHtml(state.user.name)} (${escapeHtml(state.user.department || '企業同仁')})`
+          : '全公司申請');
 
     // 1. A4 報銷黏存單專用表頭
     const headerHtml = `
@@ -1324,12 +1330,18 @@
       dom.btnSheetsPanel.style.display = 'none'; // 員工不需管理 Google Sheets
       if (dom.btnApprovalLogs) dom.btnApprovalLogs.style.display = 'none'; // 員工隱藏金額異動 Log 檔
       if (dom.btnUserApplications) dom.btnUserApplications.style.display = 'none';
+      if (dom.filterUserCapsule) dom.filterUserCapsule.style.display = 'none';
+      state.filters.user_name = '';
     } else if (state.user.role === 'accountant') {
       dom.statScopeTitle.textContent = '全公司核銷審核';
       dom.statScopeDesc.textContent = '您可審核全公司申請、核定實批金額並調閱稽核日誌';
       dom.btnSheetsPanel.style.display = 'inline-flex';
       if (dom.btnApprovalLogs) dom.btnApprovalLogs.style.display = 'inline-flex';
       if (dom.btnUserApplications) dom.btnUserApplications.style.display = 'none';
+      if (dom.filterUserCapsule) {
+        dom.filterUserCapsule.style.display = 'inline-flex';
+        populateUserFilterOptions();
+      }
     } else {
       dom.statScopeTitle.textContent = '超級管理者權限';
       dom.statScopeDesc.textContent = '擁有最高審核、實批金額核定與伺服器 Log 檔完整調閱權限';
@@ -1339,6 +1351,57 @@
         dom.btnUserApplications.style.display = 'inline-flex';
         loadPendingApplicationsCount();
       }
+      if (dom.filterUserCapsule) {
+        dom.filterUserCapsule.style.display = 'inline-flex';
+        populateUserFilterOptions();
+      }
+    }
+  }
+
+  // 動態填入同仁下拉選單選項 (提取自所有申請單、試算表名冊與使用者庫)
+  async function populateUserFilterOptions() {
+    if (!dom.filterUser) return;
+    const userSet = new Set();
+
+    // 1. 從快取或已載入單據中擷取
+    if (state.claims && state.claims.length > 0) {
+      state.claims.forEach(c => {
+        if (c.user_name) userSet.add(c.user_name.trim());
+      });
+    }
+
+    // 2. 從種子資料中擷取
+    if (typeof window !== 'undefined' && window.PETTY_CASH_SEED_DATA && Array.isArray(window.PETTY_CASH_SEED_DATA.claims)) {
+      window.PETTY_CASH_SEED_DATA.claims.forEach(c => {
+        if (c.user_name) userSet.add(c.user_name.trim());
+      });
+    }
+
+    // 3. 從 localStorage 使用者名冊中擷取
+    try {
+      const storedUsers = JSON.parse(localStorage.getItem('petty_cash_users') || '[]');
+      storedUsers.forEach(u => {
+        if (u.name) userSet.add(u.name.trim());
+      });
+    } catch (e) {}
+
+    const currentSelected = state.filters.user_name || dom.filterUser.value || 'all';
+    const sortedUsers = Array.from(userSet).filter(Boolean).sort((a, b) => a.localeCompare(b, 'zh-TW'));
+
+    dom.filterUser.innerHTML = '<option value="all">全部同仁</option>';
+    sortedUsers.forEach(userName => {
+      const opt = document.createElement('option');
+      opt.value = userName;
+      opt.textContent = userName;
+      if (userName === currentSelected) {
+        opt.selected = true;
+      }
+      dom.filterUser.appendChild(opt);
+    });
+
+    if (currentSelected && currentSelected !== 'all' && sortedUsers.includes(currentSelected)) {
+      dom.filterUser.value = currentSelected;
+      state.filters.user_name = currentSelected;
     }
   }
 
@@ -1572,12 +1635,16 @@
       // 同時讀取清單與統計數據
       const [claimsRes, statsRes] = await Promise.all([
         api.claims.list(state.filters),
-        api.claims.stats(state.filters.month)
+        api.claims.stats(state.filters)
       ]);
 
       if (claimsRes.success) {
         state.claims = claimsRes.claims;
         renderClaimsTable();
+        // 若同仁下拉選單尚未填入選項，自動補齊同仁名單
+        if (state.user && state.user.role !== 'employee' && dom.filterUser && dom.filterUser.options.length <= 1) {
+          populateUserFilterOptions();
+        }
       }
 
       if (statsRes.success) {
@@ -1594,12 +1661,14 @@
     state.filters.month = '';
     state.filters.category = 'all';
     state.filters.status = 'all';
+    state.filters.user_name = '';
     if (dom.filterKeyword) dom.filterKeyword.value = '';
     if (dom.filterMonth) dom.filterMonth.value = '';
     if (dom.filterCategory) dom.filterCategory.value = 'all';
     if (dom.filterStatus) dom.filterStatus.value = 'all';
+    if (dom.filterUser) dom.filterUser.value = 'all';
     loadDashboardData();
-    showToast('已重設所有篩選條件 (顯示全部月份)', 'info');
+    showToast('已重設所有篩選條件 (顯示全部月份與同仁)', 'info');
   }
 
   function renderStats() {
@@ -1699,10 +1768,12 @@
 
     const hasCategoryFilter = state.filters.category && state.filters.category !== 'all';
     const hasStatusFilter = state.filters.status && state.filters.status !== 'all';
+    const hasUserFilter = Boolean(state.filters.user_name && state.filters.user_name !== 'all');
     const hasKeywordFilter = Boolean(state.filters.keyword);
-    const isFiltered = hasCategoryFilter || hasStatusFilter || hasKeywordFilter;
+    const isFiltered = hasCategoryFilter || hasStatusFilter || hasKeywordFilter || hasUserFilter;
 
     let filterDescList = [];
+    if (hasUserFilter) filterDescList.push(`同仁: ${state.filters.user_name}`);
     if (hasCategoryFilter) filterDescList.push(`類別: ${state.filters.category}`);
     if (hasStatusFilter) {
       const stMap = { pending: '待初審', acc_approved: '待終審', approved: '已核准', disbursed: '已核銷', rejected: '已退回' };
@@ -2323,20 +2394,21 @@
       let blob;
       let filename;
       const monthStr = state.filters.month || '全部';
+      const userStr = state.filters.user_name && state.filters.user_name !== 'all' ? `_${state.filters.user_name}` : '';
       const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
       if (format === 'excel') {
         blob = await api.export.excel(state.filters);
         // 防禦機制：若因瀏覽器沙盒限制降級為 CSV，自動更名為 .csv 避免 Excel 報檔案無效或格式不符
         if (blob && blob.type && blob.type.includes('csv')) {
-          filename = `零用金支出明細報表_${monthStr}_${timestamp}.csv`;
+          filename = `零用金支出明細報表_${monthStr}${userStr}_${timestamp}.csv`;
           showToast('系統已自動切換為 UTF-8 BOM CSV 格式下載', 'warning');
         } else {
-          filename = `零用金支出明細報表_${monthStr}_${timestamp}.xlsx`;
+          filename = `零用金支出明細報表_${monthStr}${userStr}_${timestamp}.xlsx`;
         }
       } else {
         blob = await api.export.csv(state.filters);
-        filename = `零用金支出明細_${monthStr}_${timestamp}.csv`;
+        filename = `零用金支出明細_${monthStr}${userStr}_${timestamp}.csv`;
       }
 
       // 觸發前端自動下載
@@ -2589,6 +2661,13 @@
       loadDashboardData();
     });
 
+    if (dom.filterUser) {
+      dom.filterUser.addEventListener('change', () => {
+        state.filters.user_name = dom.filterUser.value === 'all' ? '' : dom.filterUser.value;
+        loadDashboardData();
+      });
+    }
+
     if (dom.selectRoleSwitch) {
       dom.selectRoleSwitch.addEventListener('change', () => {
         switchActiveRole(dom.selectRoleSwitch.value);
@@ -2647,18 +2726,6 @@
       dom.btnRefreshListMini.addEventListener('click', triggerRefresh);
     }
 
-    if (dom.btnResetFilters) {
-      dom.btnResetFilters.addEventListener('click', () => {
-        state.filters.category = 'all';
-        state.filters.status = 'all';
-        state.filters.keyword = '';
-        if (dom.filterCategory) dom.filterCategory.value = 'all';
-        if (dom.filterStatus) dom.filterStatus.value = 'all';
-        if (dom.filterKeyword) dom.filterKeyword.value = '';
-        loadDashboardData();
-        showToast('已重設所有篩選條件', 'info');
-      });
-    }
 
     // 6. 匯出報表下拉切換
     dom.btnExportDropdown.addEventListener('click', e => {

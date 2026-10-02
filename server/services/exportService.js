@@ -21,9 +21,10 @@ const exportService = {
     });
 
     // 報表大標題
+    const userPart = filterInfo.user_name ? ` - ${filterInfo.user_name}` : '';
     const titleText = filterInfo.month
-      ? `企業零用金支出核銷明細表 (${filterInfo.month} 月份)`
-      : '企業零用金支出核銷明細總表';
+      ? `企業零用金支出核銷明細表 (${filterInfo.month} 月份${userPart})`
+      : `企業零用金支出核銷明細總表${userPart ? ` (${filterInfo.user_name})` : ''}`;
 
     sheet.mergeCells('A1:M1');
     const titleRow = sheet.getCell('A1');
@@ -41,7 +42,8 @@ const exportService = {
     sheet.mergeCells('A2:M2');
     const subTitle = sheet.getCell('A2');
     const nowStr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-    subTitle.value = `匯出時間：${nowStr}  |  篩選條件：${filterInfo.category || '全部類別'} / ${filterInfo.status || '全部狀態'}  |  申請筆數：${claims.length} 筆`;
+    const userDesc = filterInfo.user_name ? `  |  指定同仁：${filterInfo.user_name}` : '';
+    subTitle.value = `匯出時間：${nowStr}${userDesc}  |  篩選條件：${filterInfo.category || '全部類別'} / ${filterInfo.status || '全部狀態'}  |  申請筆數：${claims.length} 筆`;
     subTitle.font = { name: '微軟正黑體', size: 10, color: { argb: 'FF64748B' } };
     subTitle.alignment = { vertical: 'middle', horizontal: 'left' };
     sheet.getRow(2).height = 24;
