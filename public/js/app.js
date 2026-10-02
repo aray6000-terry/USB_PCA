@@ -222,6 +222,7 @@
     a4EmptyNotice: document.getElementById('a4-empty-hint'),
     receiptsA4PrintableArea: document.getElementById('receipts-a4-printable-area'),
     btnDoPrintA4: document.getElementById('btn-do-print-a4'),
+    btnSavePdfA4: document.getElementById('btn-save-pdf-a4'),
 
     // AI OCR 發票相片辨識建單 DOM
     btnOpenAiOcrModal: document.getElementById('btn-open-ai-ocr-modal'),
@@ -975,7 +976,7 @@
       cardsHtml += `
         <div class="a4-receipt-card">
           <div class="a4-receipt-img-box">
-            <img src="${fullUrl}" alt="${escapeHtml(c.claim_no)} 憑證照片" loading="lazy">
+            <img src="${fullUrl}" alt="${escapeHtml(c.claim_no)} 憑證照片" crossorigin="anonymous">
           </div>
           <div class="a4-receipt-details">
             <div class="a4-detail-row-top">
@@ -1032,6 +1033,126 @@
 
     sheet.innerHTML = headerHtml + gridHtml + footerHtml;
     return sheet;
+  }
+
+  // ====================================================
+  // 發票憑證 A4 黏存單：另存為 PDF 下載功能 (原生本機生成)
+  // ====================================================
+
+  async function saveA4AsPdf() {
+    if (!window.html2pdf) {
+      showToast('尚未載入 PDF 轉檔套件，請檢查網路或重新整理頁面', 'error');
+      return;
+    }
+
+    const printableArea = dom.receiptsA4PrintableArea;
+    const sheets = printableArea.querySelectorAll('.a4-sheet');
+    if (!sheets || sheets.length === 0) {
+      showToast('目前沒有可另存為 PDF 的憑證資料', 'warning');
+      return;
+    }
+
+    const btn = dom.btnSavePdfA4;
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:6px;vertical-align:middle;"></span>產生 PDF 中...`;
+    }
+
+    let cloneContainer = null;
+    try {
+      showToast('正在產生高畫質 A4 PDF 黏存單，請稍候...', 'info');
+
+      // 建立乾淨獨立的克隆容器 (移除螢幕陰影與卡片外距，確保 100% 精準吻合 A4 規格)
+      cloneContainer = document.createElement('div');
+      cloneContainer.style.position = 'fixed';
+      cloneContainer.style.left = '0';
+      cloneContainer.style.top = '0';
+      cloneContainer.style.zIndex = '-9999';
+      cloneContainer.style.opacity = '0.01';
+      cloneContainer.style.pointerEvents = 'none';
+      cloneContainer.style.width = '210mm';
+      cloneContainer.style.background = '#FFFFFF';
+      cloneContainer.style.margin = '0';
+      cloneContainer.style.padding = '0';
+
+      sheets.forEach((origSheet, idx) => {
+        const clonedSheet = origSheet.cloneNode(true);
+        clonedSheet.style.width = '210mm';
+        clonedSheet.style.height = '296mm'; // 保留 1mm 裕度避免瀏覽器四捨五入產生額外空白頁
+        clonedSheet.style.maxHeight = '296mm';
+        clonedSheet.style.boxShadow = 'none';
+        clonedSheet.style.borderRadius = '0';
+        clonedSheet.style.margin = '0';
+        clonedSheet.style.boxSizing = 'border-box';
+        clonedSheet.style.overflow = 'hidden';
+        if (idx < sheets.length - 1) {
+          clonedSheet.style.pageBreakAfter = 'always';
+          clonedSheet.style.breakAfter = 'page';
+        } else {
+          clonedSheet.style.pageBreakAfter = 'avoid';
+          clonedSheet.style.breakAfter = 'avoid';
+        }
+        cloneContainer.appendChild(clonedSheet);
+      });
+
+      document.body.appendChild(cloneContainer);
+
+      // 等候所有憑證相片載入完成，確保不出現破圖
+      const imgElements = Array.from(cloneContainer.querySelectorAll('img'));
+      await Promise.all(imgElements.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => {
+          img.onload = resolve;
+          img.onerror = resolve;
+          setTimeout(resolve, 3000);
+        });
+      }));
+
+      // 產生檔名
+      const monthStr = state.filters.month ? state.filters.month.replace('-', '') : new Date().toISOString().slice(0, 7).replace('-', '');
+      const userStr = (state.filters.user_name && state.filters.user_name !== 'all')
+        ? `_${state.filters.user_name}`
+        : (state.user ? `_${state.user.name}` : '');
+      const filename = `零用金支出憑證黏存單_${monthStr}${userStr}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 1024
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait'
+        },
+        pagebreak: {
+          mode: ['css', 'legacy'],
+          after: '.a4-sheet'
+        }
+      };
+
+      await window.html2pdf().set(opt).from(cloneContainer).save();
+      showToast('📄 憑證黏存單 PDF 下載成功！', 'success');
+    } catch (err) {
+      console.error('另存 PDF 失敗:', err);
+      showToast('產生 PDF 失敗: ' + (err.message || '未知錯誤'), 'error');
+    } finally {
+      if (cloneContainer && cloneContainer.parentNode) {
+        cloneContainer.parentNode.removeChild(cloneContainer);
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
   }
 
   // ====================================================
@@ -2942,6 +3063,9 @@
       dom.btnDoPrintA4.addEventListener('click', () => {
         window.print();
       });
+    }
+    if (dom.btnSavePdfA4) {
+      dom.btnSavePdfA4.addEventListener('click', saveA4AsPdf);
     }
 
     // 6.5 AI 發票辨識建單彈窗事件

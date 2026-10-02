@@ -2256,92 +2256,124 @@ textarea:focus {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 6mm 10mm;
+    margin: 6mm 8mm;
   }
 
-  html, body {
-    background: #FFFFFF !important;
-    color: #000000 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    height: auto !important;
-    overflow: visible !important;
+  *, *::before, *::after {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* 隱藏螢幕上所有不相干元素 */
-  body * {
-    visibility: hidden;
-  }
-
-  /* 僅讓 A4 列印區塊及其子項目可見 */
-  #receipts-a4-printable-area,
-  #receipts-a4-printable-area * {
-    visibility: visible;
-  }
-
-  #receipts-a4-printable-area {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
+  html, body, #app {
+    background: #FFFFFF !important;
+    color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: transparent !important;
-    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
 
-  .modal-overlay {
+  /* 關鍵修正：將整個頁面上所有非 modal-receipts-a4 的元素徹底移除文檔流 (避免產生 8-9 頁隱形空白頁) */
+  body > *:not(#app),
+  #app > *:not(#modal-receipts-a4),
+  #login-view,
+  #main-view,
+  .toast-container,
+  .no-print,
+  .a4-control-header {
+    display: none !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* 展開 A4 列印容器 */
+  #modal-receipts-a4 {
+    display: block !important;
     position: static !important;
     background: transparent !important;
-    display: block !important;
     padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    z-index: auto !important;
   }
 
   .modal-a4-preview-card {
+    display: block !important;
+    position: static !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
     max-width: 100% !important;
     width: 100% !important;
+    height: auto !important;
     max-height: none !important;
-    box-shadow: none !important;
-    border: none !important;
-    background: transparent !important;
-    display: block !important;
+    overflow: visible !important;
   }
 
   .a4-preview-scrollable {
-    padding: 0 !important;
-    background: transparent !important;
-    overflow: visible !important;
     display: block !important;
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #receipts-a4-printable-area {
+    display: block !important;
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
   }
 
   .a4-sheets-container {
-    gap: 0 !important;
-    width: 100% !important;
     display: block !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
   }
 
+  /* 精確單頁 A4 紙張配置：尺寸 278mm 剛好吻合 A4 可列印區，防止溢出次頁 */
   .a4-sheet {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    position: relative !important;
     width: 100% !important;
-    height: 278mm !important; /* 精準符合 A4 邊距，杜絕印出多餘空白頁 */
+    height: 278mm !important;
     max-height: 278mm !important;
+    box-sizing: border-box !important;
+    background: #FFFFFF !important;
+    color: #0F172A !important;
     margin: 0 !important;
-    padding: 4mm 0 !important;
+    padding: 2mm 4mm !important;
     box-shadow: none !important;
     border: none !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     page-break-after: always !important;
     break-after: page !important;
-    background: #FFFFFF !important;
   }
 
   .a4-sheet:last-child {
     page-break-after: avoid !important;
     break-after: avoid !important;
-  }
-
-  .no-print {
-    display: none !important;
   }
 }
 
