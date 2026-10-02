@@ -779,6 +779,8 @@ function gasAiReceiptOcr(imageBase64, openAiKey, geminiKey) {
     + '  ]\n'
     + '}';
 
+  var oaiErrDetail = '';
+
   // 1. 若有配置 OpenAI API Key (sk-...)
   if (openAiKey && openAiKey.indexOf('sk-') === 0) {
     try {
@@ -822,10 +824,17 @@ function gasAiReceiptOcr(imageBase64, openAiKey, geminiKey) {
           };
         }
       } else {
-        Logger.log('OpenAI API 回傳 HTTP ' + oaiCode + ': ' + oaiRes.getContentText());
+        var oaiBody = oaiRes.getContentText();
+        Logger.log('OpenAI API 回傳 HTTP ' + oaiCode + ': ' + oaiBody);
+        if (oaiCode === 429 || oaiBody.indexOf('no credits remaining') !== -1) {
+          oaiErrDetail = 'OpenAI 額度為 0 (HTTP 429)。ChatGPT 網頁訂閱與 API 額度分開計算。建議改用 Google Gemini Key (永久免費) 或至 platform.openai.com 預先儲值。';
+        }
       }
     } catch (e) {
       Logger.log('GAS OpenAI 辨識異常: ' + e.toString());
+      if (e.toString().indexOf('429') !== -1) {
+        oaiErrDetail = 'OpenAI 額度為 0 (HTTP 429)。建議改用 Google Gemini Key (永久免費) 或至 platform.openai.com 預先儲值。';
+      }
     }
   }
 
@@ -867,7 +876,7 @@ function gasAiReceiptOcr(imageBase64, openAiKey, geminiKey) {
           return {
             success: true,
             source: 'gemini_vision',
-            message: 'Gemini 成功辨識出發票明細！',
+            message: 'Gemini 成功辨識出發票明細！' + (oaiErrDetail ? ' (已自 OpenAI 降級)' : ''),
             receipts: parsedGem.receipts || []
           };
         }
@@ -879,6 +888,6 @@ function gasAiReceiptOcr(imageBase64, openAiKey, geminiKey) {
 
   return {
     success: false,
-    message: '未能完成 AI 發票辨識，請確認是否已正確設定 OpenAI 或 Gemini API Key。'
+    message: oaiErrDetail || '未能完成 AI 發票辨識，請確認是否已正確設定 OpenAI 或 Gemini API Key。'
   };
 }

@@ -157,7 +157,17 @@ class AiReceiptService {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`OpenAI API 回傳錯誤 (HTTP ${response.status}): ${errText}`);
+      let errDetail = errText;
+      try {
+        const parsed = JSON.parse(errText);
+        errDetail = parsed?.error?.message || errText;
+      } catch (_) {}
+
+      if (response.status === 429 || errDetail.includes('no credits remaining') || errDetail.includes('insufficient_quota')) {
+        throw new Error('OpenAI 額度為 0 (HTTP 429: You have no credits remaining)。\n💡 原因：ChatGPT 網頁訂閱與 API 額度分開計算。\n🌟 免費解法：請改用 Google Gemini API Key（每日 1500 次永久免費，免綁信用卡）或至 platform.openai.com 預先儲值。');
+      }
+
+      throw new Error(`OpenAI API 回傳錯誤 (HTTP ${response.status}): ${errDetail}`);
     }
 
     const data = await response.json();

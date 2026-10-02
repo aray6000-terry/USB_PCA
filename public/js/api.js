@@ -1525,6 +1525,7 @@ class ApiService {
       }
 
       // 2. 第二優先：OpenAI ChatGPT (GPT-4o-mini) 視覺辨識 (若有設定 OpenAI Key)
+      let oaiErrMsg = '';
       if (openAiKey) {
         try {
           const oaiRes = await this.claims.callOpenAiDirect(imageData, openAiKey);
@@ -1538,21 +1539,24 @@ class ApiService {
           }
         } catch (err) {
           console.warn('OpenAI ChatGPT 辨識失敗:', err.message);
+          oaiErrMsg = err.message || '';
+          // 若未設定 Gemini Key，直接拋出友善說明
           if (!geminiKey) {
-            throw new Error('ChatGPT 辨識失敗：' + (err.message || '請檢查 OpenAI API Key 是否正確'));
+            throw new Error(oaiErrMsg || 'ChatGPT 辨識失敗，請檢查 OpenAI API Key 與帳號額度');
           }
         }
       }
 
-      // 3. 第三優先：Google Gemini 視覺辨識 (若有設定 Gemini Key)
+      // 3. 第三優先：Google Gemini 視覺辨識 (若有設定 Gemini Key 或自 OpenAI 降級)
       if (geminiKey) {
         try {
           const directRes = await this.claims.callGeminiDirect(imageData, geminiKey);
           if (directRes && Array.isArray(directRes.receipts) && directRes.receipts.length > 0) {
+            const fallbackTip = oaiErrMsg ? ' (因 OpenAI 帳號無額度，已自動切換 Google Gemini)' : '';
             return {
               success: true,
               source: 'gemini_client_direct',
-              message: `Gemini 成功辨識出 ${directRes.receipts.length} 張發票！`,
+              message: `Gemini 成功辨識出 ${directRes.receipts.length} 張發票！${fallbackTip}`,
               receipts: directRes.receipts
             };
           }
@@ -1583,7 +1587,7 @@ class ApiService {
       return {
         success: false,
         source: 'none',
-        message: '⚠️ 照片未偵測到電子發票 QR Code。請點擊上方「⚙️ AI設定」填入 ChatGPT (sk-...) 或 Gemini Key，即可啟用名目、日期、含稅金額與發票號碼自動辨識！'
+        message: '⚠️ 照片未偵測到電子發票 QR Code。請點擊上方「⚙️ AI設定」填入 Google Gemini Key (永久免費) 或 ChatGPT Key (sk-...)，即可啟用品名、日期、含稅金額與發票號碼自動辨識！'
       };
     },
 
@@ -1654,6 +1658,12 @@ class ApiService {
         } catch (_) {
           errDetail = await res.text().catch(() => '');
         }
+
+        // 專門針對 429 額度耗盡給予精確中文指引
+        if (res.status === 429 || errDetail.includes('no credits remaining') || errDetail.includes('insufficient_quota')) {
+          throw new Error('OpenAI 額度為 0 (HTTP 429: You have no credits remaining)。\n💡 原因：ChatGPT 網頁 Plus 訂閱與 API 額度分開計費，API 需至 OpenAI 後台預先儲值。\n🌟 免費解法：請點擊右上角「⚙️ AI設定」換用 Google Gemini Key（Google AI Studio 每日 1500 次永久免費，免綁信用卡）！');
+        }
+
         throw new Error(`OpenAI API 回傳錯誤 (HTTP ${res.status}): ${errDetail || '請求未被接受'}`);
       }
 
@@ -1662,8 +1672,6 @@ class ApiService {
       if (!content) throw new Error('OpenAI ChatGPT 未回傳辨識內容');
       return JSON.parse(content);
     },
-
-
 
     scanTaiwanInvoiceQr: async (imageData) => {
       if (typeof window === 'undefined' || typeof document === 'undefined') return null;
@@ -1696,9 +1704,9 @@ class ApiService {
       // 2. 確保 jsQR 庫就緒 (若未載入則動態載入)
       if (typeof window.jsQR !== 'function') {
         try {
-          await new Promise((resolve, reject) => {
+          await new Promise((resolve) => {
             const script = document.createElement('script');
-            script.src = 'js/jsqr.min.js?v=20261002_gemini25_v3';
+            script.src = 'js/jsqr.min.js?v=20261002_fix429_v7';
             script.onload = resolve;
             script.onerror = resolve; // 即使失敗也不拋錯，繼續向下
             document.head.appendChild(script);
@@ -1707,7 +1715,7 @@ class ApiService {
         } catch (_) {}
       }
 
-      // 3. 使用純 JS 的 jsQR 解碼
+      // 3. 使用純 JS 的 jsQR 多尺度與局部裁切解碼
       if (typeof window.jsQR === 'function') {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -1717,7 +1725,7 @@ class ApiService {
         const origH = img.naturalHeight || img.height;
         if (!origW || !origH) return null;
 
-        // 多尺度掃描以適應各種手機拍照解析度 (原圖、1200px、800px、1600px)
+        // A. 全圖多尺度掃描 (原圖、1200px、800px、1600px)
         const targetDims = [origW, 1200, 800, 1600].filter((v, idx, arr) => v > 0 && arr.indexOf(v) === idx);
 
         for (const dim of targetDims) {
@@ -1736,6 +1744,30 @@ class ApiService {
           const code = window.jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
           if (code && code.data) {
             const parsed = this.claims.parseTaiwanInvoiceQr(code.data);
+            if (parsed) return parsed;
+          }
+        }
+
+        // B. 局部區域裁切掃描 (針對發票高解析度拍照，QR Code 佔比偏小的場景)
+        const crops = [
+          // 中央 60%
+          { sx: origW * 0.2, sy: origH * 0.2, sw: origW * 0.6, sh: origH * 0.6 },
+          // 中央偏左 (發票左側 QR Code，含字軌與總額)
+          { sx: origW * 0.05, sy: origH * 0.2, sw: origW * 0.5, sh: origH * 0.6 },
+          // 中央偏右 (發票右側 QR Code)
+          { sx: origW * 0.45, sy: origH * 0.2, sw: origW * 0.5, sh: origH * 0.6 }
+        ];
+
+        for (const c of crops) {
+          const cw = Math.min(800, Math.round(c.sw));
+          const ch = Math.min(800, Math.round(c.sh));
+          canvas.width = cw;
+          canvas.height = ch;
+          ctx.drawImage(img, c.sx, c.sy, c.sw, c.sh, 0, 0, cw, ch);
+          const cImgData = ctx.getImageData(0, 0, cw, ch);
+          const cCode = window.jsQR(cImgData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+          if (cCode && cCode.data) {
+            const parsed = this.claims.parseTaiwanInvoiceQr(cCode.data);
             if (parsed) return parsed;
           }
         }

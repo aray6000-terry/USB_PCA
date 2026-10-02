@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261002_chatgpt_v6">
+  <link rel="stylesheet" href="css/style.css?v=20261002_fix429_v7">
 </head>
 <body>
   <div id="app">
@@ -635,21 +635,22 @@
             </div>
             
             <!-- 快速輸入 AI API Key 面板 (支援 ChatGPT / Gemini) -->
-            <div id="quick-gemini-panel" class="hidden" style="margin-bottom: 10px; padding: 12px; background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 12px;">
+            <div id="quick-gemini-panel" class="hidden" style="margin-bottom: 12px; padding: 14px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 12px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-weight: 600; color: var(--primary);">🤖 AI 發票自動辨識設定 (支援 ChatGPT / Gemini)</span>
+                <span style="font-weight: 600; color: var(--primary);">🤖 AI 發票自動辨識引擎設定</span>
                 <div style="display: flex; gap: 10px; font-size: 11px;">
-                  <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">OpenAI Key ↗</a>
-                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">Gemini Key ↗</a>
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #10B981; font-weight: 600; text-decoration: underline;">🌟 免費申請 Gemini Key ↗</a>
+                  <a href="https://platform.openai.com/settings/organization/billing" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">OpenAI 儲值 ↗</a>
                 </div>
               </div>
-              <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-                <input type="password" id="input-quick-gemini-key" placeholder="貼上 OpenAI API Key (sk-...) 或 Gemini Key" style="flex: 1; font-size: 12px; padding: 5px 8px; height: 32px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-main);">
-                <button type="button" id="btn-save-quick-gemini-key" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px; height: 32px; white-space: nowrap;">儲存</button>
+              <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                <input type="password" id="input-quick-gemini-key" placeholder="貼入 Google Gemini Key (AIzaSy...) 或 OpenAI Key (sk-...)" style="flex: 1; font-size: 12px; padding: 6px 10px; height: 34px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-main);">
+                <button type="button" id="btn-save-quick-gemini-key" class="btn btn-primary" style="padding: 4px 14px; font-size: 12px; height: 34px; white-space: nowrap;">儲存</button>
               </div>
-              <div style="color: var(--text-muted); font-size: 11px; line-height: 1.5;">
-                💡 貼入 <b>sk-...</b> 將自動啟用 <b>OpenAI ChatGPT (GPT-4o-mini)</b> 深度精準提取名目、日期、含稅金額與發票號碼！<br>
-                💡 台灣電子發票 (含 QR Code) 系統直接本機 0 秒秒讀，免耗任何 AI 額度。
+              <div style="color: var(--text-muted); font-size: 11px; line-height: 1.6; background: rgba(255, 255, 255, 0.5); padding: 8px 10px; border-radius: 6px; border: 1px dashed rgba(0,0,0,0.1);">
+                <span style="color: #10B981; font-weight: 600;">🌟 強烈推薦：Google Gemini Key</span>（每日 1,500 次永久免費，免綁信用卡，於 <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary); text-decoration: underline;">Google AI Studio</a> 點擊建立即可）。<br>
+                <span style="color: #3B82F6; font-weight: 600;">💳 付費引擎：OpenAI ChatGPT (sk-...)</span>（需至 <a href="https://platform.openai.com/settings/organization/billing" target="_blank" style="color: var(--primary); text-decoration: underline;">OpenAI Billing</a> 預付儲值 $5 美元以上，ChatGPT Plus 網頁訂閱無法折抵 API）。<br>
+                <span style="color: #6366F1; font-weight: 600;">📷 0 元秒讀：台灣電子發票</span> 只要拍清楚發票上的 QR Code，本機秒讀發票號碼與金額，免任何 API 費用！
               </div>
             </div>
 
@@ -1340,8 +1341,8 @@
   <script src="js/exceljs.min.js"></script>
   <script src="js/jsqr.min.js"></script>
   <script src="js/html2pdf.bundle.min.js"></script>
-  <script src="js/seed-data.js?v=20261002_chatgpt_v6"></script>
-  <script src="js/api.js?v=20261002_chatgpt_v6"></script>
-  <script src="js/app.js?v=20261002_chatgpt_v6"></script>
+  <script src="js/seed-data.js?v=20261002_fix429_v7"></script>
+  <script src="js/api.js?v=20261002_fix429_v7"></script>
+  <script src="js/app.js?v=20261002_fix429_v7"></script>
 </body>
 </html>
