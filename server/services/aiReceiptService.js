@@ -78,7 +78,6 @@ class AiReceiptService {
    * 呼叫 Google Gemini Vision REST API (支援 Gemini 1.5 Flash)
    */
   async callGeminiVision(base64Data, mimeType, apiKey) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const prompt = `你是一個專業的台灣企業財務與會計發票收據自動辨識專家。
 請仔細檢視這張照片。這張照片中可能包含「一張」或「多張」發票、收據、高鐵/台鐵車票、計程車收據、電子發票證明聯等。
@@ -132,24 +131,51 @@ class AiReceiptService {
       }
     };
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
-    });
+    const candidateModels = [
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash'
+    ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Gemini API 回傳錯誤 (HTTP ${response.status}): ${errText}`);
+    let lastError = null;
+
+    for (const model of candidateModels) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!candidateText) {
+            throw new Error(`Gemini 模型 [${model}] 未回傳辨識內容`);
+          }
+          return JSON.parse(candidateText);
+        }
+
+        const errText = await response.text();
+        if (response.status === 404) {
+          console.warn(`[AI-OCR] 後端呼叫模型 ${model} 回傳 404，嘗試下一候選模型...`);
+          lastError = new Error(`Gemini 模型 ${model} 不存在 (HTTP 404)`);
+          continue;
+        }
+
+        throw new Error(`Gemini API 回傳錯誤 (HTTP ${response.status}): ${errText}`);
+      } catch (err) {
+        if (err.message && err.message.includes('404')) {
+          lastError = err;
+          continue;
+        }
+        throw err;
+      }
     }
 
-    const data = await response.json();
-    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidateText) {
-      throw new Error('Gemini API 未回傳辨識內容');
-    }
-
-    return JSON.parse(candidateText);
+    throw lastError || new Error('所有 Gemini 候選模型皆無法連線，請檢查 API Key 或網路環境');
   }
 
   /**

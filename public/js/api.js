@@ -1564,6 +1564,8 @@ class ApiService {
       };
     },
 
+
+
     scanTaiwanInvoiceQr: async (imageData) => {
       if (typeof window === 'undefined' || typeof document === 'undefined') return null;
 
@@ -1592,7 +1594,21 @@ class ApiService {
         }
       }
 
-      // 2. 使用純 JS 的 jsQR 解碼
+      // 2. 確保 jsQR 庫就緒 (若未載入則動態載入)
+      if (typeof window.jsQR !== 'function') {
+        try {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'js/jsqr.min.js?v=20261002_gemini25_v3';
+            script.onload = resolve;
+            script.onerror = resolve; // 即使失敗也不拋錯，繼續向下
+            document.head.appendChild(script);
+            setTimeout(resolve, 1500); // 1.5 秒超時保障
+          });
+        } catch (_) {}
+      }
+
+      // 3. 使用純 JS 的 jsQR 解碼
       if (typeof window.jsQR === 'function') {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -1701,7 +1717,10 @@ class ApiService {
       return null;
     },
 
-    callGeminiDirect: async (imageData, apiKey) => {
+    callGeminiDirect: async (imageData, rawApiKey) => {
+      const cleanKey = (rawApiKey || '').trim();
+      if (!cleanKey) throw new Error('未提供有效 Gemini API Key');
+
       let mimeType = 'image/jpeg';
       let rawBase64 = imageData;
       const matches = imageData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
@@ -1710,7 +1729,6 @@ class ApiService {
         rawBase64 = matches[2];
       }
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
       const prompt = `你是一個專業的台灣企業財務與會計發票收據自動辨識專家。
 請仔細辨識這張發票或收據照片，輸出繁體中文 JSON：
 {
@@ -1726,7 +1744,7 @@ class ApiService {
   ]
 }`;
 
-      const body = {
+      const requestBody = {
         contents: [{
           parts: [
             { text: prompt },
@@ -1739,16 +1757,60 @@ class ApiService {
         }
       };
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!txt) throw new Error('Gemini API 未回傳內容');
-      return JSON.parse(txt);
+      // 支援多模型自動輪替 (優先 gemini-2.5-flash，若遇 404 自動容錯降級嘗試備用模型)
+      const candidateModels = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-flash'
+      ];
+
+      let lastError = null;
+
+      for (const model of candidateModels) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!txt) throw new Error(`Gemini 模型 [${model}] 未能解析出文字內容`);
+            return JSON.parse(txt);
+          }
+
+          // 讀取 Google API 錯誤主體
+          let errDetail = '';
+          try {
+            const errJson = await res.json();
+            errDetail = errJson?.error?.message || JSON.stringify(errJson);
+          } catch (_) {
+            errDetail = await res.text().catch(() => '');
+          }
+
+          // 若為 404，可能是該模型在該帳號/端點不可用，繼續嘗試下一個模型
+          if (res.status === 404) {
+            console.warn(`[Gemini API] 模型 ${model} 回傳 404，自動切換下一候選模型...`);
+            lastError = new Error(`模型 ${model} 不存在 (${errDetail || '404 Not Found'})`);
+            continue;
+          }
+
+          // 若為 400, 403 等關鍵錯誤，直接拋出具體原因
+          throw new Error(`Google API 回傳 HTTP ${res.status}: ${errDetail || '請求未被接受'}`);
+        } catch (err) {
+          if (err.message && err.message.includes('404')) {
+            lastError = err;
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      throw lastError || new Error('所有 Gemini 候選模型皆無法連線，請檢查 API Key 或網路環境');
     },
 
     batchCreate: async (claims, receiptUrl = '') => {
