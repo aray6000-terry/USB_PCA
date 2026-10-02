@@ -1501,8 +1501,13 @@ class ApiService {
       return { success: true, message: '單據已刪除' };
     },
 
-    recognizeReceipt: async (imageData, geminiApiKey = '') => {
-      const apiKey = geminiApiKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_api_key') : '') || '';
+    recognizeReceipt: async (imageData, customApiKey = '') => {
+      const storedOpenAiKey = typeof localStorage !== 'undefined' ? localStorage.getItem('openai_api_key') : '';
+      const storedGeminiKey = typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_api_key') : '';
+      
+      const passedKey = (customApiKey || '').trim();
+      const openAiKey = (passedKey.startsWith('sk-') ? passedKey : '') || storedOpenAiKey || '';
+      const geminiKey = (!passedKey.startsWith('sk-') ? passedKey : '') || storedGeminiKey || '';
 
       // 1. 第一優先：台灣電子發票 QR Code 即時掃描與精準解碼 (純本機端執行，100% 精準無延遲)
       try {
@@ -1519,32 +1524,35 @@ class ApiService {
         console.warn('QR Code 解析未觸發或無二維碼:', qrErr.message);
       }
 
-      // 2. 本地 Node 後端模式
-      if (!this.isCloudMode) {
+      // 2. 第二優先：OpenAI ChatGPT (GPT-4o-mini) 視覺辨識 (若有設定 OpenAI Key)
+      if (openAiKey) {
         try {
-          const res = await this.request('/claims/recognize-receipt', {
-            method: 'POST',
-            body: { image_data: imageData, gemini_api_key: apiKey }
-          });
-          if (res && res.success && Array.isArray(res.receipts) && res.receipts.length > 0 && !res.is_mock) {
-            return res;
+          const oaiRes = await this.claims.callOpenAiDirect(imageData, openAiKey);
+          if (oaiRes && Array.isArray(oaiRes.receipts) && oaiRes.receipts.length > 0) {
+            return {
+              success: true,
+              source: 'chatgpt_vision',
+              message: `ChatGPT 成功辨識出 ${oaiRes.receipts.length} 筆發票明細！`,
+              receipts: oaiRes.receipts
+            };
           }
-        } catch (e) {
-          if (!e.message.startsWith('CloudModeActive')) {
-            console.warn('後端辨識服務未回應，自動切換至前端備援引擎:', e.message);
+        } catch (err) {
+          console.warn('OpenAI ChatGPT 辨識失敗:', err.message);
+          if (!geminiKey) {
+            throw new Error('ChatGPT 辨識失敗：' + (err.message || '請檢查 OpenAI API Key 是否正確'));
           }
         }
       }
 
-      // 3. 純前端直連 Google Gemini 1.5 Flash Vision (若使用者有提供 API Key)
-      if (apiKey) {
+      // 3. 第三優先：Google Gemini 視覺辨識 (若有設定 Gemini Key)
+      if (geminiKey) {
         try {
-          const directRes = await this.claims.callGeminiDirect(imageData, apiKey);
+          const directRes = await this.claims.callGeminiDirect(imageData, geminiKey);
           if (directRes && Array.isArray(directRes.receipts) && directRes.receipts.length > 0) {
             return {
               success: true,
               source: 'gemini_client_direct',
-              message: `AI 成功辨識出 ${directRes.receipts.length} 張發票！`,
+              message: `Gemini 成功辨識出 ${directRes.receipts.length} 張發票！`,
               receipts: directRes.receipts
             };
           }
@@ -1554,14 +1562,105 @@ class ApiService {
         }
       }
 
-      // 4. 若以上皆無法辨識，絕不回傳假資料，而是明確告知未辨識出真實資訊
+      // 4. 本地 Node 後端模式 (若非 CloudMode)
+      if (!this.isCloudMode) {
+        try {
+          const res = await this.request('/claims/recognize-receipt', {
+            method: 'POST',
+            body: { image_data: imageData, openai_api_key: openAiKey, gemini_api_key: geminiKey }
+          });
+          if (res && res.success && Array.isArray(res.receipts) && res.receipts.length > 0 && !res.is_mock) {
+            return res;
+          }
+        } catch (e) {
+          if (!e.message.startsWith('CloudModeActive')) {
+            console.warn('後端辨識服務未回應:', e.message);
+          }
+        }
+      }
+
+      // 5. 若皆未配置 Key 且未掃到 QR Code
       return {
         success: false,
         source: 'none',
-        message: apiKey
-          ? '⚠️ 未能於相片中辨識出清晰之發票號碼與金額，請手動確認填寫。'
-          : '⚠️ 照片未偵測到電子發票 QR Code。若為紙本收據，可點擊上方「⚙️ AI設定」設定免費 Gemini Key 啟用相片文字辨識，或請手動填寫發票號碼與金額。'
+        message: '⚠️ 照片未偵測到電子發票 QR Code。請點擊上方「⚙️ AI設定」填入 ChatGPT (sk-...) 或 Gemini Key，即可啟用名目、日期、含稅金額與發票號碼自動辨識！'
       };
+    },
+
+    callOpenAiDirect: async (imageData, openAiKey) => {
+      const cleanKey = (openAiKey || '').trim();
+      if (!cleanKey) throw new Error('未提供有效 OpenAI API Key (格式如 sk-...)');
+
+      const prompt = `你是一個專業的台灣企業財務與會計發票收據自動辨識專家。
+請仔細辨識這張照片中的發票或收據，提取以下關鍵欄位並輸出繁體中文 JSON：
+1. expense_date: 消費日期，西元格式 YYYY-MM-DD (若為民國年月日如113年9月15日請轉為2024-09-15)。
+2. category: 費用類別，必須為下列選項之一：['交通', '餐食', '設備', '交際費', '清潔及庶務用品', '其他']。
+3. item_name: 消費名目/項目簡要說明 (10~30字內，例如：統一超商會議餐盒與茶點、台灣中油公務車輛加油)。
+4. amount: 發票總金額 (含稅實付總額/應付總計)，必須是純整數數字 (例如 1280)。
+5. receipt_no: 統一發票號碼 (兩碼英文+八碼數字，例如 AB-12345678) 或收據號碼。
+6. notes: 店家名稱、營業人統一編號或備註 (例如：統一超商 統編:22555003)。
+
+請務必嚴格輸出 JSON 格式如下：
+{
+  "receipts": [
+    {
+      "expense_date": "YYYY-MM-DD",
+      "category": "餐食",
+      "item_name": "消費名目項目說明",
+      "amount": 450,
+      "receipt_no": "AB-12345678",
+      "notes": "店家名稱與統編"
+    }
+  ]
+}`;
+
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${cleanKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert Taiwanese invoice and receipt OCR data extraction engine. Always output valid JSON.'
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: imageData
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.1
+        })
+      });
+
+      if (!res.ok) {
+        let errDetail = '';
+        try {
+          const errData = await res.json();
+          errDetail = errData?.error?.message || JSON.stringify(errData);
+        } catch (_) {
+          errDetail = await res.text().catch(() => '');
+        }
+        throw new Error(`OpenAI API 回傳錯誤 (HTTP ${res.status}): ${errDetail || '請求未被接受'}`);
+      }
+
+      const data = await res.json();
+      const content = data?.choices?.[0]?.message?.content;
+      if (!content) throw new Error('OpenAI ChatGPT 未回傳辨識內容');
+      return JSON.parse(content);
     },
 
 

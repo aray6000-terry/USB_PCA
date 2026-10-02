@@ -43,7 +43,27 @@ class AiReceiptService {
       rawBase64 = matches[2];
     }
 
-    // 1. 若有配置 Gemini API Key，呼叫 Google 官方多模態 Gemini API
+    // 1. 若為 OpenAI API Key (sk-...)，呼叫 OpenAI ChatGPT (GPT-4o-mini)
+    if (apiKey && apiKey.startsWith('sk-')) {
+      try {
+        console.log(`[AI-OCR] 正在使用 OpenAI ChatGPT (gpt-4o-mini) 進行多模態發票影像辨識...`);
+        const result = await this.callOpenAiVision(imageBase64, apiKey);
+        if (result && Array.isArray(result.receipts) && result.receipts.length > 0) {
+          return {
+            success: true,
+            source: 'chatgpt_vision',
+            is_mock: false,
+            message: `ChatGPT 成功辨識出 ${result.receipts.length} 張發票/收據！`,
+            receipts: this.sanitizeParsedReceipts(result.receipts)
+          };
+        }
+      } catch (err) {
+        console.warn(`[AI-OCR] OpenAI API 辨識異常 (${err.message})`);
+        throw new Error(`OpenAI 辨識失敗: ${err.message}`);
+      }
+    }
+
+    // 2. 若為 Google Gemini API Key，呼叫 Google 官方多模態 Gemini API
     if (apiKey) {
       try {
         console.log(`[AI-OCR] 正在使用 Gemini API 進行多模態發票影像辨識...`);
@@ -53,25 +73,97 @@ class AiReceiptService {
             success: true,
             source: 'gemini_vision',
             is_mock: false,
-            message: `AI 成功辨識出 ${result.receipts.length} 張發票/收據！`,
+            message: `Gemini 成功辨識出 ${result.receipts.length} 張發票/收據！`,
             receipts: this.sanitizeParsedReceipts(result.receipts)
           };
         }
       } catch (err) {
-        console.warn(`[AI-OCR] Gemini API 辨識異常 (${err.message})，切換至智能展示模式`);
+        console.warn(`[AI-OCR] Gemini API 辨識異常 (${err.message})`);
+        throw new Error(`Gemini 辨識失敗: ${err.message}`);
       }
     }
 
-    // 2. 若未配置 API Key 或 API 呼叫失敗，絕不捏造假資料
+    // 3. 若未配置 API Key
     return {
       success: false,
       source: 'none',
       is_mock: false,
-      message: apiKey
-        ? 'Gemini 呼叫未成功，請確認 API Key 是否有效。'
-        : '⚠️ 尚未配置 Gemini API Key，未能進行深度視覺字元辨識。請輸入 API Key 或手動輸入發票資訊。',
+      message: '⚠️ 尚未配置 AI API Key，請輸入 OpenAI (sk-...) 或 Gemini API Key。',
       receipts: []
     };
+  }
+
+  /**
+   * 呼叫 OpenAI Chat Completions API (支援 GPT-4o-mini)
+   */
+  async callOpenAiVision(imageData, apiKey) {
+    const prompt = `你是一個專業的台灣企業財務與會計發票收據自動辨識專家。
+請仔細檢視這張照片。照片中可能包含「一張」或「多張」發票、收據、車票或電子發票證明聯。
+請將照片中出現的「每一張獨立發票或收據」分別擷取出來，嚴格輸出繁體中文 JSON：
+
+欄位要求：
+1. expense_date: 消費日期，必須轉換為西元格式 YYYY-MM-DD (例如民國113年9月15日轉為2024-09-15)。
+2. category: 費用類別，限定選項為：['交通', '餐食', '設備', '交際費', '清潔及庶務用品', '其他']。
+3. item_name: 消費名目/項目說明 (10~30字內，例如：統一超商會議餐盒與茶點、台灣中油車輛加油)。
+4. amount: 發票總金額 (含稅實付總額/應付總計)，必須是純整數數字 (例如 1280)。
+5. receipt_no: 統一發票號碼 (如兩碼英文+八碼數字 AB-12345678) 或免用發票收據號碼。
+6. notes: 店家名稱、營業人統一編號或備註 (例如：統一超商 統編:22555003)。
+
+請務必嚴格輸出 JSON 格式如下：
+{
+  "receipts": [
+    {
+      "expense_date": "YYYY-MM-DD",
+      "category": "餐食",
+      "item_name": "消費名目項目說明",
+      "amount": 450,
+      "receipt_no": "AB-12345678",
+      "notes": "店家名稱與統編"
+    }
+  ]
+}`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.trim()}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an AI specialized in Taiwanese invoice OCR data extraction. Output valid JSON only.'
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageData
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.1
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenAI API 回傳錯誤 (HTTP ${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) throw new Error('OpenAI ChatGPT 未回傳辨識內容');
+    return JSON.parse(content);
   }
 
   /**

@@ -2389,7 +2389,8 @@
 
         // 狀態徽章切換為成功提示 (清楚標明辨識來源)
         const isQr = r.source && r.source.includes('qrcode');
-        const sourceLabel = isQr ? 'QR Code 秒讀' : 'AI 視覺辨識';
+        const isChatGpt = r.source && r.source.includes('chatgpt');
+        const sourceLabel = isQr ? 'QR Code 秒讀' : (isChatGpt ? 'ChatGPT 辨識' : 'Gemini 視覺辨識');
         if (dom.ocrStatusBadge) {
           dom.ocrStatusBadge.className = 'ocr-badge-success';
           dom.ocrStatusBadge.innerHTML = `✅ [${sourceLabel}] ${r.receipt_no || ''} | NT$ ${Number(r.amount || 0).toLocaleString('en-US')}`;
@@ -2441,7 +2442,7 @@
     if (dom.quickGeminiPanel) {
       dom.quickGeminiPanel.classList.add('hidden');
       if (dom.inputQuickGeminiKey) {
-        dom.inputQuickGeminiKey.value = localStorage.getItem('gemini_api_key') || '';
+        dom.inputQuickGeminiKey.value = localStorage.getItem('openai_api_key') || localStorage.getItem('gemini_api_key') || '';
       }
     }
 
@@ -2477,7 +2478,7 @@
     if (dom.quickGeminiPanel) {
       dom.quickGeminiPanel.classList.add('hidden');
       if (dom.inputQuickGeminiKey) {
-        dom.inputQuickGeminiKey.value = localStorage.getItem('gemini_api_key') || '';
+        dom.inputQuickGeminiKey.value = localStorage.getItem('openai_api_key') || localStorage.getItem('gemini_api_key') || '';
       }
     }
 
@@ -3438,9 +3439,19 @@
       dom.btnSaveQuickGeminiKey.addEventListener('click', e => {
         e.preventDefault();
         const key = dom.inputQuickGeminiKey.value.trim();
-        localStorage.setItem('gemini_api_key', key);
-        if (dom.inputGeminiApiKey) dom.inputGeminiApiKey.value = key;
-        showToast(key ? '🎉 Gemini API Key 已成功儲存！已啟用傳統收據與非電子發票 AI 視覺字元辨識' : '已清除自訂 API Key', 'success');
+        if (!key) {
+          localStorage.removeItem('openai_api_key');
+          localStorage.removeItem('gemini_api_key');
+          if (dom.inputGeminiApiKey) dom.inputGeminiApiKey.value = '';
+          showToast('已清除自訂 AI API Key', 'info');
+        } else if (key.startsWith('sk-')) {
+          localStorage.setItem('openai_api_key', key);
+          showToast('🎉 OpenAI ChatGPT API Key 已成功儲存！已啟用 GPT-4o-mini 精準辨識發票名目、日期、含稅金額與號碼', 'success');
+        } else {
+          localStorage.setItem('gemini_api_key', key);
+          if (dom.inputGeminiApiKey) dom.inputGeminiApiKey.value = key;
+          showToast('🎉 Google Gemini API Key 已成功儲存！已啟用多模態視覺字元辨識', 'success');
+        }
         if (dom.quickGeminiPanel) dom.quickGeminiPanel.classList.add('hidden');
       });
     }

@@ -151,6 +151,15 @@ function doPost(e) {
       });
     }
 
+    // 0-2. 雲端 AI 發票辨識中轉 (支援 OpenAI ChatGPT / Google Gemini，免去瀏覽器跨域限制)
+    if (action === 'recognize_receipt') {
+      var imgData = payload.image_data || '';
+      var oaiKey = payload.openai_api_key || '';
+      var gemKey = payload.gemini_api_key || '';
+      var ocrResult = gasAiReceiptOcr(imgData, oaiKey, gemKey);
+      return jsonResponse(ocrResult);
+    }
+
     // 1. 連線測試 ping
     if (action === 'ping') {
       var claimSheet = getOrCreateClaimSheet(ss);
@@ -745,4 +754,131 @@ function savePhotoToDrive(claimNo, base64Data, filename) {
     Logger.log('儲存相片至 Google Drive 失敗: ' + err.toString());
     return '';
   }
+}
+
+/**
+ * Google Apps Script 雲端 AI 發票收據視覺辨識
+ * 支援 OpenAI ChatGPT (GPT-4o-mini) 與 Google Gemini 多模態中轉
+ */
+function gasAiReceiptOcr(imageBase64, openAiKey, geminiKey) {
+  if (!imageBase64) {
+    return { success: false, message: '未提供圖片資料' };
+  }
+
+  var prompt = '你是一個專業的台灣企業財務與會計發票收據自動辨識專家。請從發票照片中辨識繁體中文資訊，嚴格輸出 JSON 格式：\n'
+    + '{\n'
+    + '  "receipts": [\n'
+    + '    {\n'
+    + '      "expense_date": "YYYY-MM-DD",\n'
+    + '      "category": "交通 | 餐食 | 設備 | 交際費 | 清潔及庶務用品 | 其他",\n'
+    + '      "item_name": "消費名目項目說明",\n'
+    + '      "amount": 450,\n'
+    + '      "receipt_no": "統一發票號碼如 AB-12345678",\n'
+    + '      "notes": "店家名稱與統編"\n'
+    + '    }\n'
+    + '  ]\n'
+    + '}';
+
+  // 1. 若有配置 OpenAI API Key (sk-...)
+  if (openAiKey && openAiKey.indexOf('sk-') === 0) {
+    try {
+      var oaiPayload = {
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: 'You are an AI specialized in Taiwanese invoice OCR. Output valid JSON only.' },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: imageBase64 } }
+            ]
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.1
+      };
+
+      var oaiOptions = {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { Authorization: 'Bearer ' + openAiKey.trim() },
+        payload: JSON.stringify(oaiPayload),
+        muteHttpExceptions: true
+      };
+
+      var oaiRes = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', oaiOptions);
+      var oaiCode = oaiRes.getResponseCode();
+      if (oaiCode === 200) {
+        var oaiJson = JSON.parse(oaiRes.getContentText());
+        var oaiTxt = oaiJson.choices && oaiJson.choices[0] && oaiJson.choices[0].message && oaiJson.choices[0].message.content;
+        if (oaiTxt) {
+          var parsedData = JSON.parse(oaiTxt);
+          return {
+            success: true,
+            source: 'chatgpt_vision',
+            message: 'ChatGPT 成功辨識出發票明細！',
+            receipts: parsedData.receipts || []
+          };
+        }
+      } else {
+        Logger.log('OpenAI API 回傳 HTTP ' + oaiCode + ': ' + oaiRes.getContentText());
+      }
+    } catch (e) {
+      Logger.log('GAS OpenAI 辨識異常: ' + e.toString());
+    }
+  }
+
+  // 2. 若有配置 Gemini API Key
+  if (geminiKey) {
+    try {
+      var mimeType = 'image/jpeg';
+      var rawBase64 = imageBase64;
+      var matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        mimeType = matches[1];
+        rawBase64 = matches[2];
+      }
+
+      var gemUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey.trim();
+      var gemPayload = {
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mimeType, data: rawBase64 } }
+          ]
+        }],
+        generationConfig: { response_mime_type: 'application/json', temperature: 0.1 }
+      };
+
+      var gemOptions = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(gemPayload),
+        muteHttpExceptions: true
+      };
+
+      var gemRes = UrlFetchApp.fetch(gemUrl, gemOptions);
+      if (gemRes.getResponseCode() === 200) {
+        var gemJson = JSON.parse(gemRes.getContentText());
+        var gemTxt = gemJson.candidates && gemJson.candidates[0] && gemJson.candidates[0].content && gemJson.candidates[0].content.parts && gemJson.candidates[0].content.parts[0] && gemJson.candidates[0].content.parts[0].text;
+        if (gemTxt) {
+          var parsedGem = JSON.parse(gemTxt);
+          return {
+            success: true,
+            source: 'gemini_vision',
+            message: 'Gemini 成功辨識出發票明細！',
+            receipts: parsedGem.receipts || []
+          };
+        }
+      }
+    } catch (err) {
+      Logger.log('GAS Gemini 辨識異常: ' + err.toString());
+    }
+  }
+
+  return {
+    success: false,
+    message: '未能完成 AI 發票辨識，請確認是否已正確設定 OpenAI 或 Gemini API Key。'
+  };
 }

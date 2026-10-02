@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261002_gemini25_active_v5">
+  <link rel="stylesheet" href="css/style.css?v=20261002_chatgpt_v6">
 </head>
 <body>
   <div id="app">
@@ -634,18 +634,22 @@
               </div>
             </div>
             
-            <!-- 快速輸入 API Key 面板 (預設收合) -->
-            <div id="quick-gemini-panel" class="hidden" style="margin-bottom: 10px; padding: 10px 12px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 600; color: var(--primary);">🤖 Gemini 1.5 Flash 視覺辨識設定</span>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">免費取得 API Key ↗</a>
+            <!-- 快速輸入 AI API Key 面板 (支援 ChatGPT / Gemini) -->
+            <div id="quick-gemini-panel" class="hidden" style="margin-bottom: 10px; padding: 12px; background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: 600; color: var(--primary);">🤖 AI 發票自動辨識設定 (支援 ChatGPT / Gemini)</span>
+                <div style="display: flex; gap: 10px; font-size: 11px;">
+                  <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">OpenAI Key ↗</a>
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">Gemini Key ↗</a>
+                </div>
               </div>
-              <div style="display: flex; gap: 6px;">
-                <input type="password" id="input-quick-gemini-key" placeholder="貼上您的 Google Gemini API Key (AIzaSy...)" style="flex: 1; font-size: 12px; padding: 4px 8px; height: 30px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-                <button type="button" id="btn-save-quick-gemini-key" class="btn btn-primary" style="padding: 4px 10px; font-size: 12px; height: 30px; white-space: nowrap;">儲存</button>
+              <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                <input type="password" id="input-quick-gemini-key" placeholder="貼上 OpenAI API Key (sk-...) 或 Gemini Key" style="flex: 1; font-size: 12px; padding: 5px 8px; height: 32px; border-radius: 4px; border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-main);">
+                <button type="button" id="btn-save-quick-gemini-key" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px; height: 32px; white-space: nowrap;">儲存</button>
               </div>
-              <div style="margin-top: 4px; color: var(--text-muted); font-size: 11px;">
-                💡 電子發票 (含 QR Code) 系統直接本機秒讀！非電子發票 (計程車收據/長條發票) 設定 Key 後即可啟用深度視覺辨識。
+              <div style="color: var(--text-muted); font-size: 11px; line-height: 1.5;">
+                💡 貼入 <b>sk-...</b> 將自動啟用 <b>OpenAI ChatGPT (GPT-4o-mini)</b> 深度精準提取名目、日期、含稅金額與發票號碼！<br>
+                💡 台灣電子發票 (含 QR Code) 系統直接本機 0 秒秒讀，免耗任何 AI 額度。
               </div>
             </div>
 
@@ -1336,8 +1340,8 @@
   <script src="js/exceljs.min.js"></script>
   <script src="js/jsqr.min.js"></script>
   <script src="js/html2pdf.bundle.min.js"></script>
-  <script src="js/seed-data.js?v=20261002_gemini25_active_v5"></script>
-  <script src="js/api.js?v=20261002_gemini25_active_v5"></script>
-  <script src="js/app.js?v=20261002_gemini25_active_v5"></script>
+  <script src="js/seed-data.js?v=20261002_chatgpt_v6"></script>
+  <script src="js/api.js?v=20261002_chatgpt_v6"></script>
+  <script src="js/app.js?v=20261002_chatgpt_v6"></script>
 </body>
 </html>
