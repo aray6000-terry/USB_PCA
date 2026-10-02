@@ -43,458 +43,439 @@
   ],
   "claims": [
     {
-      "id": "clm_98a68edb3e8e",
-      "claim_no": "EXP-202609-010",
-      "user_id": "usr_1789778004124",
-      "user_name": "林測試",
-      "department": "行銷部",
-      "item_name": "客戶拜訪計程車車資 (二階段測試)",
-      "amount": 680,
-      "expense_date": "2026-09-19",
-      "category": "交通",
-      "receipt_no": "TR-99887766",
-      "notes": "二階段審核驗證單",
-      "receipt_url": "/uploads/EXP-202609-010_發票憑證_1789750336874.png",
-      "status": "disbursed",
-      "rejection_reason": "",
-      "audit_trail": [
-        {
-          "action": "送出申請",
-          "by": "林測試",
-          "by_role": "employee",
-          "at": "2026-09-19T00:33:24.217Z",
-          "note": "同仁提交零用金申請"
-        },
-        {
-          "action": "會計初審通過 (送交主管終審)",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-19T00:33:24.303Z",
-          "note": "",
-          "approved_amount": 680,
-          "claim_amount": 680,
-          "diff": 0
-        },
-        {
-          "action": "主管終審核准",
-          "by": "超級管理者 (陳總監)",
-          "by_role": "admin",
-          "at": "2026-09-19T00:33:24.319Z",
-          "note": "",
-          "approved_amount": 680,
-          "claim_amount": 680,
-          "diff": 0
-        },
-        {
-          "action": "完成撥款核銷",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-19T00:33:24.326Z",
-          "note": "",
-          "approved_amount": 680,
-          "claim_amount": 680,
-          "diff": 0
-        }
-      ],
-      "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.971Z",
-      "created_at": "2026-09-19T00:33:24.217Z",
-      "updated_at": "2026-09-19T00:33:31.971Z",
-      "approved_amount": 680
-    },
-    {
-      "id": "clm_903df5a623e3",
-      "claim_no": "EXP-202609-009",
-      "user_id": "usr_1789777987752",
-      "user_name": "林測試",
-      "department": "行銷部",
-      "item_name": "客戶拜訪計程車車資 (二階段測試)",
-      "amount": 680,
-      "expense_date": "2026-09-19",
-      "category": "交通",
-      "receipt_no": "TR-99887766",
-      "notes": "二階段審核驗證單",
-      "receipt_url": "/uploads/EXP-202609-009_發票憑證_1789750332911.png",
-      "status": "disbursed",
-      "rejection_reason": "",
-      "audit_trail": [
-        {
-          "action": "送出申請",
-          "by": "林測試",
-          "by_role": "employee",
-          "at": "2026-09-19T00:33:07.844Z",
-          "note": "同仁提交零用金申請"
-        },
-        {
-          "action": "會計初審通過 (送交主管終審)",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-19T00:33:08.013Z",
-          "note": "",
-          "approved_amount": 680,
-          "claim_amount": 680,
-          "diff": 0
-        },
-        {
-          "action": "主管終審核准",
-          "by": "超級管理者 (陳總監)",
-          "by_role": "admin",
-          "at": "2026-09-19T00:33:08.030Z",
-          "note": "",
-          "approved_amount": 680,
-          "claim_amount": 680,
-          "diff": 0
-        },
-        {
-          "action": "完成撥款核銷",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-19T00:33:08.037Z",
-          "note": "",
-          "approved_amount": 680,
-          "claim_amount": 680,
-          "diff": 0
-        }
-      ],
-      "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.974Z",
-      "created_at": "2026-09-19T00:33:07.844Z",
-      "updated_at": "2026-09-19T00:33:31.974Z",
-      "approved_amount": 680
-    },
-    {
-      "id": "clm_2aa906b091dc",
-      "claim_no": "EXP-202609-008",
-      "user_id": "usr_emp_01",
-      "user_name": "張小明 (業務同仁)",
-      "department": "業務一部",
-      "item_name": "業務拜訪重要客戶餐費",
-      "amount": 2980,
-      "expense_date": "2026-09-18",
-      "category": "餐食",
-      "receipt_no": "THSR-99881122",
-      "notes": "竹科聯發科專案拜訪",
-      "receipt_url": "/uploads/EXP-202609-008_發票憑證_1789749921619.png",
-      "status": "disbursed",
-      "rejection_reason": "",
-      "audit_trail": [
-        {
-          "action": "送出申請",
-          "by": "張小明 (業務同仁)",
-          "by_role": "employee",
-          "at": "2026-09-19T00:09:00.577Z",
-          "note": "同仁提交零用金申請"
-        },
-        {
-          "action": "審核通過",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-19T00:09:00.656Z",
-          "note": "",
-          "approved_amount": 2980,
-          "claim_amount": 2980,
-          "diff": 0
-        },
-        {
-          "action": "完成撥款核銷",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-19T00:09:00.668Z",
-          "note": "",
-          "approved_amount": 2980,
-          "claim_amount": 2980,
-          "diff": 0
-        }
-      ],
-      "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.976Z",
-      "created_at": "2026-09-19T00:09:00.577Z",
-      "updated_at": "2026-09-19T00:33:31.976Z",
-      "approved_amount": 2980
-    },
-    {
-      "id": "clm_8947144f6aad",
-      "claim_no": "EXP-202609-007",
-      "user_id": "usr_emp_01",
-      "user_name": "張小明 (業務同仁)",
-      "department": "業務一部",
-      "item_name": "拜訪竹科客戶高鐵商務車票",
-      "amount": 2980,
-      "expense_date": "2026-09-18",
-      "category": "交通",
-      "receipt_no": "THSR-99881122",
-      "notes": "竹科聯發科專案拜訪",
-      "receipt_url": "/uploads/EXP-202609-007_receipt_init.jpeg",
-      "status": "disbursed",
-      "rejection_reason": "",
-      "audit_trail": [
-        {
-          "action": "送出申請",
-          "by": "張小明 (業務同仁)",
-          "by_role": "employee",
-          "at": "2026-09-19T00:05:51.734Z",
-          "note": "同仁提交零用金申請"
-        },
-        {
-          "action": "審核通過",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-19T00:05:52.037Z",
-          "note": "",
-          "approved_amount": 2980,
-          "claim_amount": 2980,
-          "diff": 0
-        },
-        {
-          "action": "完成撥款核銷",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-19T00:05:52.049Z",
-          "note": "",
-          "approved_amount": 2980,
-          "claim_amount": 2980,
-          "diff": 0
-        }
-      ],
-      "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.979Z",
-      "created_at": "2026-09-19T00:05:51.734Z",
-      "updated_at": "2026-09-19T00:33:31.979Z",
-      "approved_amount": 2980
-    },
-    {
-      "id": "clm_1d3df556a980",
-      "claim_no": "EXP-202609-006",
-      "user_id": "usr_emp_01",
-      "user_name": "張小明 (業務同仁)",
-      "department": "業務一部",
-      "item_name": "設備",
-      "amount": 250,
-      "expense_date": "2026-09-18",
-      "category": "設備",
-      "receipt_no": "",
-      "notes": "",
-      "receipt_url": "/uploads/EXP-202609-006_receipt_1789758183694.png",
-      "status": "pending",
-      "rejection_reason": "",
-      "audit_trail": [
-        {
-          "action": "送出申請",
-          "by": "張小明 (業務同仁)",
-          "by_role": "employee",
-          "at": "2026-09-18T19:03:03.697Z",
-          "note": "同仁提交零用金申請"
-        }
-      ],
-      "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.982Z",
-      "created_at": "2026-09-18T19:03:03.697Z",
-      "updated_at": "2026-09-19T00:33:31.982Z"
-    },
-    {
-      "id": "clm_0c053e77f15d",
-      "claim_no": "EXP-202609-005",
-      "user_id": "usr_emp_01",
-      "user_name": "張小明 (業務同仁)",
-      "department": "業務一部",
-      "item_name": "模組",
-      "amount": 5000,
-      "expense_date": "2026-09-18",
-      "category": "設備",
-      "receipt_no": "",
-      "notes": "",
-      "receipt_url": "/uploads/EXP-202609-005_receipt_1789758131062.jpeg",
-      "status": "pending",
-      "rejection_reason": "",
-      "audit_trail": [
-        {
-          "action": "送出申請",
-          "by": "張小明 (業務同仁)",
-          "by_role": "employee",
-          "at": "2026-09-18T18:50:09.412Z",
-          "note": "同仁提交零用金申請"
-        },
-        {
-          "action": "修改內容",
-          "by": "張小明 (業務同仁)",
-          "by_role": "employee",
-          "at": "2026-09-18T19:02:11.068Z",
-          "note": "更新項目內容與金額"
-        }
-      ],
-      "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.985Z",
-      "created_at": "2026-09-18T18:50:09.413Z",
-      "updated_at": "2026-09-19T00:33:31.985Z"
-    },
-    {
-      "id": "clm_0068374ec977",
-      "claim_no": "EXP-202609-004",
-      "user_id": "usr_admin_01",
-      "user_name": "超級管理者 (陳總監)",
-      "department": "管理部",
-      "item_name": "餐費",
-      "amount": 2200,
-      "expense_date": "2026-09-18",
-      "category": "餐食",
-      "receipt_no": "",
-      "notes": "",
-      "receipt_url": "/uploads/EXP-202609-004_receipt_1789756275935.jpeg",
-      "status": "approved",
-      "rejection_reason": "",
-      "audit_trail": [
-        {
-          "action": "送出申請",
-          "by": "超級管理者 (陳總監)",
-          "by_role": "admin",
-          "at": "2026-09-18T18:31:15.945Z",
-          "note": "同仁提交零用金申請"
-        },
-        {
-          "action": "審核通過",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-18T18:41:01.378Z",
-          "note": "測試會計審核：部分非公務開支剔除，實批核准",
-          "approved_amount": 2100,
-          "claim_amount": 2200,
-          "diff": -100
-        },
-        {
-          "action": "審核通過",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-18T18:41:19.854Z",
-          "note": "測試會計審核：部分非公務開支剔除，實批核准",
-          "approved_amount": 2100,
-          "claim_amount": 2200,
-          "diff": -100
-        }
-      ],
-      "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.988Z",
-      "created_at": "2026-09-18T18:31:15.945Z",
-      "updated_at": "2026-09-19T00:33:31.988Z",
-      "approved_amount": 2100
-    },
-    {
-      "id": "clm_b6f7c6572afe",
-      "claim_no": "EXP-202609-003",
-      "user_id": "usr_admin_01",
-      "user_name": "超級管理者 (陳總監)",
-      "department": "管理部",
-      "item_name": "AI辨識測試-台北至南港車資",
-      "amount": 420,
-      "expense_date": "2026-09-18",
-      "category": "交通",
-      "receipt_no": "TDC-8899",
-      "notes": "台灣大車隊收據",
-      "receipt_url": "/uploads/EXP-202609-002_receipt_1789754041609.png",
-      "status": "disbursed",
-      "rejection_reason": "",
-      "audit_trail": [
-        {
-          "action": "AI自動辨識送審",
-          "by": "超級管理者 (陳總監)",
-          "by_role": "admin",
-          "at": "2026-09-18T17:54:01.633Z",
-          "note": "由發票照片多張自動辨識生成"
-        },
-        {
-          "action": "審核通過",
-          "by": "超級管理者 (陳總監)",
-          "by_role": "admin",
-          "at": "2026-09-18T18:49:06.384Z",
-          "note": "",
-          "approved_amount": 400,
-          "claim_amount": 420,
-          "diff": -20
-        },
-        {
-          "action": "完成撥款核銷",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-18T18:49:17.244Z",
-          "note": "",
-          "approved_amount": 400,
-          "claim_amount": 420,
-          "diff": -20
-        }
-      ],
-      "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.991Z",
-      "created_at": "2026-09-18T17:54:01.633Z",
-      "updated_at": "2026-09-19T00:33:31.991Z",
-      "approved_amount": 400
-    },
-    {
-      "id": "clm_a490f47d4a89",
+      "id": "clm_sheet_r2_exp_202609_002",
+      "sheet_row": 2,
       "claim_no": "EXP-202609-002",
-      "user_id": "usr_admin_01",
-      "user_name": "超級管理者 (陳總監)",
-      "department": "管理部",
-      "item_name": "AI辨識測試-咖啡豆與鮮奶",
-      "amount": 350,
-      "expense_date": "2026-09-18",
+      "user_id": "usr_sheet",
+      "user_name": "李泰叡",
+      "department": "總管理處",
       "category": "餐食",
-      "receipt_no": "AB-98765432",
-      "notes": "AI單照多張發票自動建立",
-      "receipt_url": "/uploads/EXP-202609-002_receipt_1789754041609.png",
-      "status": "approved",
-      "rejection_reason": "",
+      "item_name": "555",
+      "amount": 555,
+      "expense_date": "2026-09-21",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "data:image/webp;base64,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",
+      "status": "acc_approved",
       "audit_trail": [
         {
-          "action": "AI自動辨識送審",
-          "by": "超級管理者 (陳總監)",
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
           "by_role": "admin",
-          "at": "2026-09-18T17:54:01.610Z",
-          "note": "由發票照片多張自動辨識生成"
-        },
-        {
-          "action": "審核通過",
-          "by": "王會計 (財務部)",
-          "by_role": "accountant",
-          "at": "2026-09-18T18:49:39.514Z",
-          "note": "",
-          "approved_amount": 350,
-          "claim_amount": 350,
-          "diff": 0
+          "at": "2026-10-02T01:48:09.691Z",
+          "note": "自 Google 試算表同步匯入"
         }
       ],
       "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.994Z",
-      "created_at": "2026-09-18T17:54:01.610Z",
-      "updated_at": "2026-09-19T00:33:31.994Z",
-      "approved_amount": 350
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Mon Sep 21 2026 15:28:52 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
     },
     {
-      "id": "clm_a8cee7848e48",
+      "id": "clm_sheet_r3_exp_202609_001",
+      "sheet_row": 3,
       "claim_no": "EXP-202609-001",
-      "user_id": "usr_admin_01",
-      "user_name": "超級管理者 (陳總監)",
-      "department": "管理部",
-      "item_name": "公車",
-      "amount": 300,
-      "expense_date": "2026-09-18",
+      "user_id": "usr_sheet",
+      "user_name": "李泰叡",
+      "department": "總管理處",
       "category": "交通",
-      "receipt_no": "",
-      "notes": "",
-      "receipt_url": "/uploads/EXP-202609-001_receipt_1789753527809.png",
-      "status": "pending",
-      "rejection_reason": "",
+      "item_name": "350",
+      "amount": 348,
+      "expense_date": "2026-09-21",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "data:image/png;base64,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",
+      "status": "acc_approved",
       "audit_trail": [
         {
-          "action": "送出申請",
-          "by": "超級管理者 (陳總監)",
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
           "by_role": "admin",
-          "at": "2026-09-18T17:45:27.815Z",
-          "note": "同仁提交零用金申請"
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
         }
       ],
       "sheet_synced": true,
-      "sheet_synced_at": "2026-09-19T00:33:31.997Z",
-      "created_at": "2026-09-18T17:45:27.815Z",
-      "updated_at": "2026-09-19T00:33:31.997Z"
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Mon Sep 21 2026 15:28:11 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r4_exp_202609_003",
+      "sheet_row": 4,
+      "claim_no": "EXP-202609-003",
+      "user_id": "usr_sheet",
+      "user_name": "何貫宇",
+      "department": "業務一部",
+      "category": "交通",
+      "item_name": "666",
+      "amount": 666,
+      "expense_date": "2026-09-21",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Mon Sep 21 2026 15:30:38 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r5_exp_202609_004",
+      "sheet_row": 5,
+      "claim_no": "EXP-202609-004",
+      "user_id": "usr_sheet",
+      "user_name": "何貫宇",
+      "department": "業務一部",
+      "category": "餐食",
+      "item_name": "888",
+      "amount": 888,
+      "expense_date": "2026-09-21",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Mon Sep 21 2026 15:30:53 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r6_exp_202609_005",
+      "sheet_row": 6,
+      "claim_no": "EXP-202609-005",
+      "user_id": "usr_sheet",
+      "user_name": "何貫宇",
+      "department": "業務一部",
+      "category": "餐食",
+      "item_name": "斯納捷拜訪",
+      "amount": 1000,
+      "expense_date": "2026-09-21",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Mon Sep 21 2026 15:35:25 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r7_exp_202610_011",
+      "sheet_row": 7,
+      "claim_no": "EXP-202610-011",
+      "user_id": "usr_sheet",
+      "user_name": "江嘉偉",
+      "department": "資訊科技部",
+      "category": "交通",
+      "item_name": "易德東門",
+      "amount": 83,
+      "expense_date": "2026-09-02",
+      "receipt_no": "-",
+      "notes": "去程台鐵83",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 08:53:11 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r8_exp_202610_012",
+      "sheet_row": 8,
+      "claim_no": "EXP-202610-012",
+      "user_id": "usr_sheet",
+      "user_name": "江嘉偉",
+      "department": "資訊科技部",
+      "category": "交通",
+      "item_name": "6541651651",
+      "amount": 6516516,
+      "expense_date": "2026-10-01",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 08:56:51 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r9_exp_202610_012",
+      "sheet_row": 9,
+      "claim_no": "EXP-202610-012",
+      "user_id": "usr_sheet",
+      "user_name": "江嘉偉",
+      "department": "資訊科技部",
+      "category": "交通",
+      "item_name": "易德東門",
+      "amount": 83,
+      "expense_date": "2026-09-02",
+      "receipt_no": "-",
+      "notes": "台鐵",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 08:58:09 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r10_exp_202610_013",
+      "sheet_row": 10,
+      "claim_no": "EXP-202610-013",
+      "user_id": "usr_sheet",
+      "user_name": "江嘉偉",
+      "department": "資訊科技部",
+      "category": "交通",
+      "item_name": "易德東門",
+      "amount": 83,
+      "expense_date": "2026-09-02",
+      "receipt_no": "-",
+      "notes": "台鐵",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 08:58:31 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r11_exp_202610_014",
+      "sheet_row": 11,
+      "claim_no": "EXP-202610-014",
+      "user_id": "usr_sheet",
+      "user_name": "江嘉偉",
+      "department": "資訊科技部",
+      "category": "交通",
+      "item_name": "123456",
+      "amount": 65465165,
+      "expense_date": "2026-09-02",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 08:58:57 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r12_exp_202610_015",
+      "sheet_row": 12,
+      "claim_no": "EXP-202610-015",
+      "user_id": "usr_sheet",
+      "user_name": "江嘉偉",
+      "department": "資訊科技部",
+      "category": "交通",
+      "item_name": "561651",
+      "amount": 83,
+      "expense_date": "2026-09-30",
+      "receipt_no": "-",
+      "notes": "4561651",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 08:59:24 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r13_exp_202610_011",
+      "sheet_row": 13,
+      "claim_no": "EXP-202610-011",
+      "user_id": "usr_sheet",
+      "user_name": "徐堉桉",
+      "department": "資訊科技部",
+      "category": "交通",
+      "item_name": "544",
+      "amount": 545,
+      "expense_date": "2026-09-05",
+      "receipt_no": "5545",
+      "notes": "455454",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 09:02:47 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r14_exp_202610_012",
+      "sheet_row": 14,
+      "claim_no": "EXP-202610-012",
+      "user_id": "usr_sheet",
+      "user_name": "徐堉桉",
+      "department": "資訊科技部",
+      "category": "交通",
+      "item_name": "1",
+      "amount": 1,
+      "expense_date": "2026-10-01",
+      "receipt_no": "1",
+      "notes": "1",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 09:02:59 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r15_exp_202610_011",
+      "sheet_row": 15,
+      "claim_no": "EXP-202610-011",
+      "user_id": "usr_sheet",
+      "user_name": "何貫宇",
+      "department": "業務一部",
+      "category": "交通",
+      "item_name": "月票",
+      "amount": 1200,
+      "expense_date": "2026-09-02",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 18:17:42 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
+    },
+    {
+      "id": "clm_sheet_r16_exp_202610_011",
+      "sheet_row": 16,
+      "claim_no": "EXP-202610-011",
+      "user_id": "usr_sheet",
+      "user_name": "何貫宇",
+      "department": "業務一部",
+      "category": "交通",
+      "item_name": "1",
+      "amount": 1,
+      "expense_date": "2026-10-01",
+      "receipt_no": "-",
+      "notes": "-",
+      "receipt_url": "🔗 查看發票憑證",
+      "status": "acc_approved",
+      "audit_trail": [
+        {
+          "action": "Google 試算表拉取匯入",
+          "by": "系統同步",
+          "by_role": "admin",
+          "at": "2026-10-02T01:48:09.692Z",
+          "note": "自 Google 試算表同步匯入"
+        }
+      ],
+      "sheet_synced": true,
+      "sheet_synced_at": "2026-10-02T01:48:09.692Z",
+      "created_at": "Thu Oct 01 2026 18:24:21 GMT+0800 (台北標準時間)",
+      "updated_at": "2026-10-02T01:48:09.692Z"
     }
   ],
   "config": {
@@ -503,7 +484,7 @@
     "google_spreadsheet_id": "",
     "google_service_account_email": "",
     "google_sheet_name": "零用金申請明細",
-    "last_sync_time": "2026-09-19T00:53:32.720Z",
+    "last_sync_time": "2026-10-02T01:47:42.356Z",
     "monthly_budget_warning": 50000,
     "google_gas_url": "https://script.google.com/macros/s/AKfycbxTdgqw22UF8KZCYCXlGo7SuwV7Q_nBWBC9wT6OJqEBIjb6Nea0V5bFSiy2JlMbSeMDxg/exec",
     "google_drive_folder_id": "1TlGIxQu8ZIso3wL8wzAbDpwNwxIFOHut"

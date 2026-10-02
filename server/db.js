@@ -375,7 +375,11 @@ const db = {
     }
     // 狀態篩選
     if (filter.status && filter.status !== 'all') {
-      result = result.filter(c => c.status === filter.status);
+      if (filter.status === 'pending') {
+        result = result.filter(c => c.status === 'pending' || c.status === 'acc_approved');
+      } else {
+        result = result.filter(c => c.status === filter.status);
+      }
     }
     // 關鍵字搜尋 (項目名稱、單號、備註、申請人、發票號碼、類別、部門、金額)
     if (filter.keyword) {
@@ -538,25 +542,38 @@ const db = {
     let imported = 0;
     let updated = 0;
 
-    for (const sc of sheetClaims) {
+    // 清除舊的本機示範資料 (如 '林測試' 等非試算表真實單據)
+    data.claims = data.claims.filter(c => !c.user_name.includes('林測試') && !c.claim_no.includes('EXP-202609-009') && !c.claim_no.includes('EXP-202609-010'));
+
+    const getRowKey = (c, idx) => {
+      if (c.sheet_row) return `row_${c.sheet_row}`;
+      return `${c.claim_no}___${c.user_name}___${c.amount}___${c.item_name}___${idx}`;
+    };
+
+    for (let i = 0; i < sheetClaims.length; i++) {
+      const sc = sheetClaims[i];
       if (!sc.claim_no) continue;
-      const idx = data.claims.findIndex(c => c.claim_no === sc.claim_no);
-      if (idx !== -1) {
-        data.claims[idx] = {
-          ...data.claims[idx],
+      const key = getRowKey(sc, i);
+      const existingIdx = data.claims.findIndex((c, cIdx) => getRowKey(c, cIdx) === key);
+
+      if (existingIdx !== -1) {
+        data.claims[existingIdx] = {
+          ...data.claims[existingIdx],
           ...sc,
-          id: data.claims[idx].id,
-          user_id: data.claims[idx].user_id || sc.user_id || 'usr_sheet',
-          audit_trail: data.claims[idx].audit_trail || []
+          id: data.claims[existingIdx].id || sc.id,
+          user_id: data.claims[existingIdx].user_id || sc.user_id || 'usr_sheet',
+          sheet_synced: true,
+          sheet_synced_at: new Date().toISOString()
         };
         updated++;
       } else {
         const newClaim = {
-          id: sc.id || `clm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          id: sc.id || `clm_sheet_r${i + 2}_${Date.now()}_${i}`,
+          sheet_row: sc.sheet_row || (i + 2),
           claim_no: sc.claim_no,
           user_id: sc.user_id || 'usr_sheet',
           user_name: sc.user_name || '同仁',
-          department: sc.department || '未分配',
+          department: sc.department || '一般部門',
           category: sc.category || '其他',
           item_name: sc.item_name || '未填寫',
           amount: Number(sc.amount) || 0,
@@ -564,7 +581,7 @@ const db = {
           receipt_no: sc.receipt_no || '',
           notes: sc.notes || '',
           receipt_url: sc.receipt_url || '',
-          status: sc.status || 'pending',
+          status: sc.status || 'acc_approved',
           audit_trail: [
             {
               action: 'Google 試算表拉取匯入',
@@ -579,7 +596,7 @@ const db = {
           created_at: sc.created_at || new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
-        data.claims.unshift(newClaim);
+        data.claims.push(newClaim);
         imported++;
       }
     }

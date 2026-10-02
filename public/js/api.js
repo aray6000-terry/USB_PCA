@@ -95,30 +95,10 @@ class ApiService {
     this.purgeDeprecatedUsers();
     const seed = window.PETTY_CASH_SEED_DATA || {};
 
-    if (!localStorage.getItem('petty_cash_claims')) {
+    const rawStored = localStorage.getItem('petty_cash_claims');
+    if (!rawStored || rawStored.includes('林測試') || !rawStored.includes('EXP-202610-011')) {
       const initialClaims = seed.claims || [];
       localStorage.setItem('petty_cash_claims', JSON.stringify(initialClaims));
-    } else {
-      // 自動校正修復歷史快取中缺漏或不符的憑證圖檔路徑
-      try {
-        const rawStored = localStorage.getItem('petty_cash_claims');
-        if (rawStored) {
-          let stored = JSON.parse(rawStored);
-          let changed = false;
-          stored.forEach(sc => {
-            if (seed.claims) {
-              const found = seed.claims.find(x => x.claim_no === sc.claim_no);
-              if (found && found.receipt_url && (!sc.receipt_url || sc.receipt_url !== found.receipt_url)) {
-                sc.receipt_url = found.receipt_url;
-                changed = true;
-              }
-            }
-          });
-          if (changed) {
-            localStorage.setItem('petty_cash_claims', JSON.stringify(stored));
-          }
-        }
-      } catch (e) {}
     }
 
     // 重新載入時若無使用者或含有廢棄帳號，強制使用最新種子名冊
@@ -1091,7 +1071,11 @@ class ApiService {
 
       // 狀態篩選
       if (params.status && params.status !== 'all') {
-        claims = claims.filter(c => c.status === params.status);
+        if (params.status === 'pending') {
+          claims = claims.filter(c => c.status === 'pending' || c.status === 'acc_approved');
+        } else {
+          claims = claims.filter(c => c.status === params.status);
+        }
       }
 
       // 類別篩選
@@ -1689,26 +1673,44 @@ class ApiService {
       }
 
       if (res && res.success && Array.isArray(res.claims)) {
-        let claims = this.getCloudClaims();
-        let imported = 0, updated = 0;
-        for (const sc of res.claims) {
-          if (!sc.claim_no) continue;
-          const idx = claims.findIndex(c => c.claim_no === sc.claim_no);
-          if (idx !== -1) {
-            claims[idx] = { ...claims[idx], ...sc };
-            updated++;
-          } else {
-            claims.unshift(sc);
-            imported++;
-          }
-        }
-        localStorage.setItem('petty_cash_claims', JSON.stringify(claims));
+        const sheetClaims = res.claims.map((sc, i) => ({
+          id: sc.id || ('clm_sheet_r' + (i + 2) + '_' + (sc.claim_no || '').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()),
+          sheet_row: sc.sheet_row || (i + 2),
+          claim_no: sc.claim_no,
+          user_id: sc.user_id || 'usr_sheet',
+          user_name: sc.user_name || '同仁',
+          department: sc.department || '一般部門',
+          category: sc.category || '其他',
+          item_name: sc.item_name || '未填寫',
+          amount: Number(sc.amount) || 0,
+          expense_date: sc.expense_date || new Date().toISOString().slice(0, 10),
+          receipt_no: sc.receipt_no || '',
+          notes: sc.notes || '',
+          receipt_url: sc.receipt_url || '',
+          status: sc.status || 'acc_approved',
+          audit_trail: sc.audit_trail || [
+            {
+              action: 'Google 試算表拉取匯入',
+              by: '系統同步',
+              by_role: 'admin',
+              at: new Date().toISOString(),
+              note: '自 Google 試算表即時連線載入'
+            }
+          ],
+          sheet_synced: true,
+          sheet_synced_at: new Date().toISOString(),
+          created_at: sc.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+
+        localStorage.setItem('petty_cash_claims', JSON.stringify(sheetClaims));
         return {
           success: true,
-          count: res.claims.length,
-          imported,
-          updated,
-          message: `自 Google 試算表成功拉取 ${res.claims.length} 筆單據（新增 ${imported} 筆，更新 ${updated} 筆）`
+          count: sheetClaims.length,
+          sheet_count: sheetClaims.length,
+          imported: sheetClaims.length,
+          updated: 0,
+          message: `自 Google 試算表成功拉取 ${sheetClaims.length} 筆最新完整單據！`
         };
       }
       return { success: false, message: (res && res.message) || '無法自試算表讀取單據' };

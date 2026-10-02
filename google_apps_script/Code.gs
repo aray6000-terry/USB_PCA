@@ -635,7 +635,8 @@ function parseClaimRowsFromSheet(sheet) {
     }
 
     list.push({
-      id: 'clm_' + claimNo.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
+      id: 'clm_sheet_r' + (r + 1) + '_' + claimNo.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
+      sheet_row: r + 1,
       claim_no: claimNo,
       expense_date: expenseDateStr,
       user_name: String(row[nameIdx] || '同仁').trim(),

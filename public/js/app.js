@@ -346,6 +346,23 @@
     if (dom.tabBtnRegister) dom.tabBtnRegister.classList.remove('active');
   }
 
+  async function autoSyncFromGoogleSheets() {
+    try {
+      if (dom.sheetsIndicator) {
+        const text = dom.sheetsIndicator.querySelector('.indicator-text');
+        if (text) text.textContent = 'Google 試算表: 即時同步中...';
+      }
+      const res = await api.sheets.pull();
+      if (res && res.success) {
+        console.log('[AutoSync] 成功自 Google 試算表拉取單據:', res.count || res.sheet_count);
+        await loadDashboardData();
+        checkSheetsStatus();
+      }
+    } catch (e) {
+      console.warn('[AutoSync] 試算表自動同步略過:', e.message);
+    }
+  }
+
   function switchToMainView() {
     // 徹底將登入畫面完全從 DOM 排版流中隱藏與移除空間
     dom.loginView.classList.remove('active');
@@ -355,6 +372,7 @@
     updateHeaderUser();
     loadDashboardData();
     checkSheetsStatus();
+    autoSyncFromGoogleSheets();
   }
 
   // 取得後端伺服器 Base URL (自動辨識 GitHub Pages、Live Server 5500、8080 或本地 file:// 協定)
@@ -1589,8 +1607,8 @@
     const s = state.stats;
     const totalClaims = Number(s.total_claims) || 0;
     const totalAmount = Number(s.total_amount) || 0;
-    const pendingCount = Number(s.pending_count) || 0;
-    const pendingAmount = Number(s.pending_amount) || 0;
+    const pendingCount = (Number(s.pending_count) || 0) + (Number(s.acc_approved_count) || 0);
+    const pendingAmount = (Number(s.pending_amount) || 0) + (Number(s.acc_approved_amount) || 0);
     const disbursedCount = Number(s.disbursed_count) || 0;
     const approvedCount = Number(s.approved_count) || 0;
     const disbursedAmount = Number(s.disbursed_amount) || 0;
@@ -2606,7 +2624,7 @@
       });
     }
 
-    const triggerRefresh = () => {
+    const triggerRefresh = async () => {
       if (dom.btnRefreshList) {
         dom.btnRefreshList.classList.add('btn-spin-anim');
         setTimeout(() => dom.btnRefreshList && dom.btnRefreshList.classList.remove('btn-spin-anim'), 600);
@@ -2615,8 +2633,11 @@
         dom.btnRefreshListMini.classList.add('btn-spin-anim');
         setTimeout(() => dom.btnRefreshListMini && dom.btnRefreshListMini.classList.remove('btn-spin-anim'), 600);
       }
-      loadDashboardData();
-      showToast('已重新整理資料清單', 'info');
+      try {
+        await api.sheets.pull();
+      } catch (e) {}
+      await loadDashboardData();
+      showToast('已自 Google 試算表同步並重新整理資料清單', 'info');
     };
 
     if (dom.btnRefreshList) {
