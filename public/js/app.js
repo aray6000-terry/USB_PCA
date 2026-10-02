@@ -1079,8 +1079,9 @@
       sheets.forEach((origSheet, idx) => {
         const clonedSheet = origSheet.cloneNode(true);
         clonedSheet.style.width = '210mm';
-        clonedSheet.style.height = '296mm'; // 保留 1mm 裕度避免瀏覽器四捨五入產生額外空白頁
-        clonedSheet.style.maxHeight = '296mm';
+        clonedSheet.style.height = '295mm'; // 保留 2mm 裕度避免瀏覽器四捨五入產生額外空白頁
+        clonedSheet.style.maxHeight = '295mm';
+        clonedSheet.style.minHeight = '0'; // 徹底解除 screen 樣式中的 min-height: 297mm
         clonedSheet.style.boxShadow = 'none';
         clonedSheet.style.borderRadius = '0';
         clonedSheet.style.margin = '0';

@@ -2011,8 +2011,11 @@ textarea:focus {
   flex-direction: column;
   justify-content: space-between;
   position: relative;
-  page-break-after: always;
-  break-after: page;
+}
+
+.a4-sheet + .a4-sheet {
+  page-break-before: always;
+  break-before: page;
 }
 
 /* A4 表頭 */
@@ -2256,17 +2259,19 @@ textarea:focus {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 6mm 8mm;
+    margin: 8mm 8mm 8mm 8mm;
   }
 
   *, *::before, *::after {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    box-sizing: border-box !important;
   }
 
-  html, body, #app {
+  html, body {
     background: #FFFFFF !important;
     color: #000000 !important;
+    background-image: none !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -2275,105 +2280,103 @@ textarea:focus {
     overflow: visible !important;
   }
 
-  /* 關鍵修正：將整個頁面上所有非 modal-receipts-a4 的元素徹底移除文檔流 (避免產生 8-9 頁隱形空白頁) */
+  /* 關鍵修正：將整個頁面上所有非 modal-receipts-a4 的元素徹底移除文檔流，絕不佔用任何行高與空間 */
   body > *:not(#app),
   #app > *:not(#modal-receipts-a4),
   #login-view,
   #main-view,
   .toast-container,
   .no-print,
-  .a4-control-header {
+  .a4-control-header,
+  #a4-empty-hint {
     display: none !important;
     height: 0 !important;
     max-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    border: none !important;
     overflow: hidden !important;
+    visibility: hidden !important;
   }
 
-  /* 展開 A4 列印容器 */
-  #modal-receipts-a4 {
-    display: block !important;
-    position: static !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    z-index: auto !important;
-  }
-
-  .modal-a4-preview-card {
+  /* 展開 A4 列印外層容器為完全透明平坦的純流式版面 */
+  #app,
+  #modal-receipts-a4,
+  .modal-a4-preview-card,
+  .a4-preview-scrollable,
+  #receipts-a4-printable-area,
+  .a4-sheets-container {
     display: block !important;
     position: static !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
+    outline: none !important;
     padding: 0 !important;
     margin: 0 !important;
-    max-width: 100% !important;
     width: 100% !important;
+    max-width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
+    z-index: auto !important;
+    animation: none !important;
+    transform: none !important;
   }
 
-  .a4-preview-scrollable {
-    display: block !important;
-    position: static !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  #receipts-a4-printable-area {
-    display: block !important;
-    position: static !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-  }
-
-  .a4-sheets-container {
-    display: block !important;
-    gap: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-  }
-
-  /* 精確單頁 A4 紙張配置：尺寸 278mm 剛好吻合 A4 可列印區，防止溢出次頁 */
+  /* 精確單頁 A4 紙張配置：
+     A4 總高 297mm，@page 留 8mm 上下邊距 (可列印高 281mm)。
+     設定 height: 260mm，保留高達 21mm 的超寬餘裕空間，
+     徹底防止印表機實體滾輪邊距或瀏覽器四捨五入溢出到第 2 頁！ */
   .a4-sheet {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
     position: relative !important;
     width: 100% !important;
-    height: 278mm !important;
-    max-height: 278mm !important;
+    height: 260mm !important;
+    max-height: 265mm !important;
+    min-height: 0 !important; /* 關鍵：強制覆寫 screen 的 min-height: 297mm，解除高度鎖死 */
     box-sizing: border-box !important;
     background: #FFFFFF !important;
     color: #0F172A !important;
-    margin: 0 !important;
-    padding: 2mm 4mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 6mm !important;
     box-shadow: none !important;
     border: none !important;
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    page-break-after: always !important;
-    break-after: page !important;
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 
-  .a4-sheet:last-child {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+  /* 僅在有第 2 頁以上時，才在下一頁前方插入分頁；單頁或末頁絕不分頁 */
+  .a4-sheet + .a4-sheet {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .a4-sheet-header {
+    margin-bottom: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .a4-main-title {
+    font-size: 18px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .a4-approval-wrapper {
+    margin-top: auto !important;
+    padding-top: 4px !important;
+  }
+
+  .a4-approval-table td {
+    height: 26px !important;
   }
 }
 
