@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261002_print_pdf_v2">
+  <link rel="stylesheet" href="css/style.css?v=20261002_ocr_v1">
 </head>
 <body>
   <div id="app">
@@ -622,9 +622,14 @@
             <textarea id="claim-notes" rows="2" placeholder="說明事由或備註說明 (選填)..."></textarea>
           </div>
 
-          <!-- 憑證收據相片上傳 -->
+          <!-- 憑證收據相片上傳與 AI 自動辨識 -->
           <div class="form-group">
-            <label>憑證或發票照片 (選填)</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="margin-bottom: 0;">憑證或發票照片 (選填)</label>
+              <span id="ocr-status-badge" class="ocr-badge-ready">
+                ✨ 上傳相片自動辨識發票號碼與金額
+              </span>
+            </div>
             <div class="receipt-upload-zone" id="receipt-upload-zone">
               <input type="file" id="claim-receipt-file" accept="image/*" class="file-hidden">
               <div class="upload-prompt" id="upload-prompt">
@@ -633,12 +638,16 @@
                   <polyline points="17 8 12 3 7 8"></polyline>
                   <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
-                <span>點擊或拖曳上傳發票/收據照片</span>
-                <span class="upload-hint">支援 JPG、PNG，圖片將安全加密傳輸</span>
+                <span>點擊或拖曳上傳發票/收據照片 (支援 Ctrl+V 貼上)</span>
+                <span class="upload-hint">支援 JPG、PNG，上傳後系統將自動由相片中辨識「發票號碼」與「消費金額」並帶入欄位</span>
               </div>
               <div class="receipt-preview-wrapper hidden" id="receipt-preview-wrapper">
                 <img id="receipt-preview-img" src="" alt="憑證預覽">
-                <button type="button" id="btn-remove-receipt" class="btn-remove-photo">&times;</button>
+                <button type="button" id="btn-remove-receipt" class="btn-remove-photo" title="移除相片">&times;</button>
+                <div id="receipt-ocr-overlay" class="receipt-ocr-overlay hidden">
+                  <div class="ocr-mini-spinner"></div>
+                  <span>AI 辨識發票號碼與金額中...</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1307,8 +1316,8 @@
 
   <script src="js/exceljs.min.js"></script>
   <script src="js/html2pdf.bundle.min.js"></script>
-  <script src="js/seed-data.js?v=20261002_print_pdf_v2"></script>
-  <script src="js/api.js?v=20261002_print_pdf_v2"></script>
-  <script src="js/app.js?v=20261002_print_pdf_v2"></script>
+  <script src="js/seed-data.js?v=20261002_ocr_v1"></script>
+  <script src="js/api.js?v=20261002_ocr_v1"></script>
+  <script src="js/app.js?v=20261002_ocr_v1"></script>
 </body>
 </html>

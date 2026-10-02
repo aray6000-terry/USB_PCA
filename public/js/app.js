@@ -121,6 +121,8 @@
     receiptPreviewWrapper: document.getElementById('receipt-preview-wrapper'),
     receiptPreviewImg: document.getElementById('receipt-preview-img'),
     btnRemoveReceipt: document.getElementById('btn-remove-receipt'),
+    ocrStatusBadge: document.getElementById('ocr-status-badge'),
+    receiptOcrOverlay: document.getElementById('receipt-ocr-overlay'),
 
     // Review Modal
     modalReview: document.getElementById('modal-review'),
@@ -2292,6 +2294,126 @@
   }
 
   // ====================================================
+  // 零用金表單：憑證照片 AI 辨識發票號碼與金額自動帶入
+  // ====================================================
+
+  function triggerAutofillHighlight(el) {
+    if (!el) return;
+    el.classList.remove('input-autofill-highlight');
+    void el.offsetWidth; // 強制重繪觸發動畫
+    el.classList.add('input-autofill-highlight');
+    setTimeout(() => el && el.classList.remove('input-autofill-highlight'), 2500);
+  }
+
+  async function processClaimReceiptPhoto(source) {
+    let dataUrl = '';
+    if (typeof source === 'string') {
+      dataUrl = source;
+    } else if (source instanceof File || source instanceof Blob) {
+      if (source.size > 10 * 1024 * 1024) {
+        showToast('圖片大小不得超過 10MB', 'error');
+        return;
+      }
+      dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = ev => resolve(ev.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(source);
+      });
+    }
+
+    if (!dataUrl) return;
+
+    // 1. 立即於預覽區顯示相片
+    dom.receiptPreviewImg.src = dataUrl;
+    dom.receiptPreviewWrapper.classList.remove('hidden');
+    dom.uploadPrompt.classList.add('hidden');
+
+    // 2. 啟動 AI 辨識動畫與徽章狀態
+    if (dom.receiptOcrOverlay) {
+      dom.receiptOcrOverlay.classList.remove('hidden');
+    }
+    if (dom.ocrStatusBadge) {
+      dom.ocrStatusBadge.className = 'ocr-badge-loading';
+      dom.ocrStatusBadge.innerHTML = `<span class="ocr-mini-spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:4px;"></span> 正在辨識發票號碼與金額...`;
+    }
+
+    // 3. 呼叫發票識別服務 (Gemini Vision 或本地/前端模型)
+    const apiKey = localStorage.getItem('gemini_api_key') || '';
+    try {
+      const res = await api.claims.recognizeReceipt(dataUrl, apiKey);
+      const receipts = (res && res.receipts) || (res && res.data ? [res.data] : []);
+
+      if (res && res.success && receipts.length > 0) {
+        const r = receipts[0];
+        const filledList = [];
+
+        // 自動帶入「發票或收據號碼」
+        if (r.receipt_no && r.receipt_no.trim()) {
+          const cleanNo = r.receipt_no.trim().toUpperCase();
+          dom.claimReceiptNo.value = cleanNo;
+          triggerAutofillHighlight(dom.claimReceiptNo);
+          filledList.push(`發票號: ${cleanNo}`);
+        }
+
+        // 自動帶入「申請金額」並換算中文大寫
+        if (r.amount && Number(r.amount) > 0) {
+          const cleanAmount = Math.round(Number(r.amount));
+          dom.claimAmount.value = cleanAmount;
+          dom.amountVerbalPreview.textContent = numberToChineseAmount(cleanAmount);
+          triggerAutofillHighlight(dom.claimAmount);
+          filledList.push(`金額: NT$ ${cleanAmount.toLocaleString('en-US')}`);
+        }
+
+        // 智慧輔助：消費日期 (若為今日或空白則帶入發票日期)
+        if (r.expense_date) {
+          dom.claimDate.value = r.expense_date;
+          triggerAutofillHighlight(dom.claimDate);
+        }
+
+        // 智慧輔助：申請項目說明 (若為空則帶入)
+        if (r.item_name && (!dom.claimItem.value.trim() || dom.claimItem.value === '發票消費項目')) {
+          dom.claimItem.value = r.item_name;
+          triggerAutofillHighlight(dom.claimItem);
+        }
+
+        // 智慧輔助：類別自動選取
+        if (r.category && !dom.claimCategory.value) {
+          dom.claimCategory.value = r.category;
+          triggerAutofillHighlight(dom.claimCategory);
+        }
+
+        // 狀態徽章切換為成功提示
+        if (dom.ocrStatusBadge) {
+          dom.ocrStatusBadge.className = 'ocr-badge-success';
+          dom.ocrStatusBadge.innerHTML = `✅ 已自動辨識帶入：${r.receipt_no || '無發票號'} | NT$ ${Number(r.amount || 0).toLocaleString('en-US')}`;
+        }
+
+        showToast(`✨ 憑證相片辨識成功！已自動帶入：${filledList.join(' 與 ') || '發票內容'}`, 'success');
+
+        if (receipts.length > 1) {
+          setTimeout(() => {
+            showToast(`💡 提示：照片中偵測出 ${receipts.length} 張發票，已為您自動帶入第 1 張。若有需多筆分開報銷，可使用「AI 智能辨識建單」一鍵批量建立！`, 'info');
+          }, 1200);
+        }
+      } else {
+        throw new Error('未能識別出清晰的發票文字');
+      }
+    } catch (err) {
+      console.warn('發票 OCR 辨識提示:', err.message);
+      if (dom.ocrStatusBadge) {
+        dom.ocrStatusBadge.className = 'ocr-badge-warn';
+        dom.ocrStatusBadge.innerHTML = '⚠️ 未能辨識出清晰號碼，請手動填寫';
+      }
+      showToast('未能由相片清楚辨識發票號碼，請手動確認填寫', 'info');
+    } finally {
+      if (dom.receiptOcrOverlay) {
+        dom.receiptOcrOverlay.classList.add('hidden');
+      }
+    }
+  }
+
+  // ====================================================
   // 零用金表單處理 (新增 / 編輯)
   // ====================================================
 
@@ -2309,6 +2431,14 @@
     dom.receiptPreviewImg.src = '';
     dom.claimReceiptFile.value = '';
     dom.uploadPrompt.classList.remove('hidden');
+
+    if (dom.ocrStatusBadge) {
+      dom.ocrStatusBadge.className = 'ocr-badge-ready';
+      dom.ocrStatusBadge.innerHTML = '✨ 上傳相片自動辨識發票號碼與金額';
+    }
+    if (dom.receiptOcrOverlay) {
+      dom.receiptOcrOverlay.classList.add('hidden');
+    }
 
     const today = new Date().toISOString().split('T')[0];
     dom.claimDate.value = today;
@@ -2330,6 +2460,14 @@
     dom.amountVerbalPreview.textContent = numberToChineseAmount(claim.amount);
     dom.claimReceiptNo.value = claim.receipt_no || '';
     dom.claimNotes.value = claim.notes || '';
+
+    if (dom.ocrStatusBadge) {
+      dom.ocrStatusBadge.className = 'ocr-badge-ready';
+      dom.ocrStatusBadge.innerHTML = '✨ 上傳新相片可自動辨識覆蓋發票號碼與金額';
+    }
+    if (dom.receiptOcrOverlay) {
+      dom.receiptOcrOverlay.classList.add('hidden');
+    }
 
     if (claim.receipt_url) {
       dom.receiptPreviewImg.src = getFullReceiptUrl(claim.receipt_url, claim.id);
@@ -3193,23 +3331,60 @@
       dom.amountVerbalPreview.textContent = numberToChineseAmount(val);
     });
 
-    // 憑證照片選擇與預覽 (Base64)
+    // 憑證照片選擇與預覽 + 自動 AI 辨識 (檔案選取 / 拖曳 / 剪貼簿貼上)
     dom.claimReceiptFile.addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
+      processClaimReceiptPhoto(file);
+    });
 
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('圖片大小不得超過 5MB', 'error');
-        return;
+    if (dom.receiptUploadZone) {
+      dom.receiptUploadZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dom.receiptUploadZone.classList.add('dragover');
+      });
+
+      ['dragleave', 'dragend'].forEach(evtName => {
+        dom.receiptUploadZone.addEventListener(evtName, e => {
+          e.preventDefault();
+          e.stopPropagation();
+          dom.receiptUploadZone.classList.remove('dragover');
+        });
+      });
+
+      dom.receiptUploadZone.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dom.receiptUploadZone.classList.remove('dragover');
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files.length > 0) {
+          const file = files[0];
+          if (file.type && !file.type.startsWith('image/')) {
+            showToast('請上傳圖片格式檔案 (JPG, PNG, WebP)', 'warning');
+            return;
+          }
+          processClaimReceiptPhoto(file);
+        }
+      });
+    }
+
+    // 支援直接按 Ctrl+V 貼上剪貼簿中的發票圖片
+    window.addEventListener('paste', e => {
+      if (!dom.modalClaim || !dom.modalClaim.classList.contains('active')) return;
+      const items = (e.clipboardData || e.originalEvent.clipboardData)?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type && item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          if (blob) {
+            e.preventDefault();
+            showToast('📋 已偵測到剪貼簿照片，正在自動填入與辨識...', 'info');
+            processClaimReceiptPhoto(blob);
+            break;
+          }
+        }
       }
-
-      const reader = new FileReader();
-      reader.onload = ev => {
-        dom.receiptPreviewImg.src = ev.target.result;
-        dom.receiptPreviewWrapper.classList.remove('hidden');
-        dom.uploadPrompt.classList.add('hidden');
-      };
-      reader.readAsDataURL(file);
     });
 
     dom.btnRemoveReceipt.addEventListener('click', () => {
@@ -3217,6 +3392,13 @@
       dom.receiptPreviewWrapper.classList.add('hidden');
       dom.uploadPrompt.classList.remove('hidden');
       dom.claimReceiptFile.value = '';
+      if (dom.ocrStatusBadge) {
+        dom.ocrStatusBadge.className = 'ocr-badge-ready';
+        dom.ocrStatusBadge.innerHTML = '✨ 上傳相片自動辨識發票號碼與金額';
+      }
+      if (dom.receiptOcrOverlay) {
+        dom.receiptOcrOverlay.classList.add('hidden');
+      }
     });
 
     // 8. 審核操作按鈕與批准金額即時互動

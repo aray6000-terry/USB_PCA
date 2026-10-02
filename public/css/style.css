@@ -1413,9 +1413,11 @@ textarea:focus {
   position: relative;
   transition: all 0.2s ease;
 }
-.receipt-upload-zone:hover {
+.receipt-upload-zone:hover,
+.receipt-upload-zone.dragover {
   border-color: var(--primary);
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 .file-hidden {
   position: absolute;
@@ -1467,6 +1469,99 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 發票 OCR 自動辨識標籤與動畫狀態 */
+.ocr-badge-ready {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818CF8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.ocr-badge-loading {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-weight: 600;
+  animation: pulse 1.5s infinite;
+}
+.ocr-badge-success {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-weight: 600;
+}
+.ocr-badge-warn {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight: 500;
+}
+
+.receipt-ocr-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 15, 25, 0.82);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 10;
+  animation: fadeIn 0.2s ease;
+}
+
+.ocr-mini-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* 欄位自動填入高亮動畫 (發票號碼與金額) */
+.input-autofill-highlight {
+  animation: autofillPulse 2.2s ease-out !important;
+  border-color: #10B981 !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.45) !important;
+}
+
+@keyframes autofillPulse {
+  0% { transform: scale(1.02); border-color: #10B981; box-shadow: 0 0 18px rgba(16, 185, 129, 0.8); }
+  50% { transform: scale(1); border-color: #10B981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+  100% { transform: scale(1); }
 }
 
 .modal-footer {
