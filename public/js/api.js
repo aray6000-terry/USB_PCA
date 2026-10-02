@@ -1720,7 +1720,7 @@ class ApiService {
     getAvailableGeminiModel: async (cleanKey) => {
       // 1. 若同一個瀏覽器 session 已經探測過且可用，直接復用
       const cached = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('gemini_active_model') : '';
-      if (cached) return cached;
+      if (cached && !cached.includes('1.5')) return cached;
 
       // 2. 呼叫 Google 官方 ListModels API 查詢當前 API Key 真正擁有的合法模型
       const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
@@ -1736,16 +1736,26 @@ class ApiService {
 
       const data = await res.json();
       const models = data?.models || [];
-      // 過濾出支援 generateContent 的多模態模型
-      const contentModels = models.filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'));
-      if (contentModels.length === 0) {
-        throw new Error('此 Google API Key 帳號未啟用任何可用的文字/視覺生成模型');
+      if (models.length === 0) {
+        throw new Error('此 Google API Key 帳號未啟用任何可用的模型');
       }
 
-      // 優先順序：含 flash 的模型 -> 含 2.0/2.5 的模型 -> 任意支援的模型
-      const flashModel = contentModels.find(m => m.name.toLowerCase().includes('flash'));
-      const proModel = contentModels.find(m => m.name.toLowerCase().includes('gemini'));
-      const chosen = flashModel || proModel || contentModels[0];
+      // 過濾支援 generateContent (若有此欄位則比對，若無則全部列入)
+      const contentModels = models.filter(m => {
+        const methods = m.supportedGenerationMethods || m.supported_generation_methods || [];
+        if (!methods || methods.length === 0) return true;
+        return methods.some(str => str.toLowerCase().includes('generatecontent'));
+      });
+
+      const pool = contentModels.length > 0 ? contentModels : models;
+
+      // 優先順序：2.5-flash -> 3.7-flash -> 2.0-flash -> 任何 flash -> 任何 gemini
+      const m25Flash = pool.find(m => m.name.includes('2.5-flash'));
+      const m37Flash = pool.find(m => m.name.includes('3.7-flash'));
+      const m20Flash = pool.find(m => m.name.includes('2.0-flash'));
+      const anyFlash = pool.find(m => m.name.toLowerCase().includes('flash'));
+      const anyGemini = pool.find(m => m.name.toLowerCase().includes('gemini'));
+      const chosen = m25Flash || m37Flash || m20Flash || anyFlash || anyGemini || pool[0];
 
       let chosenName = chosen.name;
       if (!chosenName.startsWith('models/')) chosenName = 'models/' + chosenName;
@@ -1808,16 +1818,13 @@ class ApiService {
         }
       }
 
-      // 2. 候選清單：探測到的模型置頂，隨後放置常見官方端點
+      // 2. 候選清單：探測到的模型置頂，隨後放置目前官方現役支援端點 (全面升級 2.5/3.7)
       const candidateModels = [
         detectedModel,
-        'models/gemini-2.0-flash-exp',
-        'models/gemini-2.0-flash',
-        'models/gemini-1.5-flash-8b',
-        'models/gemini-1.5-flash-002',
-        'models/gemini-1.5-flash-001',
-        'models/gemini-1.5-flash',
-        'models/gemini-1.5-pro'
+        'models/gemini-2.5-flash',
+        'models/gemini-3.7-flash',
+        'models/gemini-2.5-pro',
+        'models/gemini-2.0-flash'
       ].filter(Boolean);
 
       let lastError = null;
