@@ -1717,6 +1717,46 @@ class ApiService {
       return null;
     },
 
+    getAvailableGeminiModel: async (cleanKey) => {
+      // 1. 若同一個瀏覽器 session 已經探測過且可用，直接復用
+      const cached = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('gemini_active_model') : '';
+      if (cached) return cached;
+
+      // 2. 呼叫 Google 官方 ListModels API 查詢當前 API Key 真正擁有的合法模型
+      const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
+      const res = await fetch(listUrl);
+      if (!res.ok) {
+        let errMsg = '';
+        try {
+          const errData = await res.json();
+          errMsg = errData?.error?.message || '';
+        } catch (_) {}
+        throw new Error(`Google API Key 驗證未通過 (HTTP ${res.status}): ${errMsg || '請檢查 API Key 是否正確複製'}`);
+      }
+
+      const data = await res.json();
+      const models = data?.models || [];
+      // 過濾出支援 generateContent 的多模態模型
+      const contentModels = models.filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'));
+      if (contentModels.length === 0) {
+        throw new Error('此 Google API Key 帳號未啟用任何可用的文字/視覺生成模型');
+      }
+
+      // 優先順序：含 flash 的模型 -> 含 2.0/2.5 的模型 -> 任意支援的模型
+      const flashModel = contentModels.find(m => m.name.toLowerCase().includes('flash'));
+      const proModel = contentModels.find(m => m.name.toLowerCase().includes('gemini'));
+      const chosen = flashModel || proModel || contentModels[0];
+
+      let chosenName = chosen.name;
+      if (!chosenName.startsWith('models/')) chosenName = 'models/' + chosenName;
+
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('gemini_active_model', chosenName);
+      }
+      console.log(`[Gemini API] 成功自動探測到可用模型：${chosenName}`);
+      return chosenName;
+    },
+
     callGeminiDirect: async (imageData, rawApiKey) => {
       const cleanKey = (rawApiKey || '').trim();
       if (!cleanKey) throw new Error('未提供有效 Gemini API Key');
@@ -1757,18 +1797,35 @@ class ApiService {
         }
       };
 
-      // 支援多模型自動輪替 (優先 gemini-2.5-flash，若遇 404 自動容錯降級嘗試備用模型)
+      // 1. 優先透過 Google ListModels 動態探測該 Key 真正支援的模型
+      let detectedModel = '';
+      try {
+        detectedModel = await this.claims.getAvailableGeminiModel(cleanKey);
+      } catch (err) {
+        console.warn('動態探測模型失敗，將嘗試後續備援清單:', err.message);
+        if (err.message && (err.message.includes('API Key 驗證未通過') || err.message.includes('API key not valid'))) {
+          throw err;
+        }
+      }
+
+      // 2. 候選清單：探測到的模型置頂，隨後放置常見官方端點
       const candidateModels = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-flash'
-      ];
+        detectedModel,
+        'models/gemini-2.0-flash-exp',
+        'models/gemini-2.0-flash',
+        'models/gemini-1.5-flash-8b',
+        'models/gemini-1.5-flash-002',
+        'models/gemini-1.5-flash-001',
+        'models/gemini-1.5-flash',
+        'models/gemini-1.5-pro'
+      ].filter(Boolean);
 
       let lastError = null;
 
       for (const model of candidateModels) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+        const fullModelPath = model.startsWith('models/') ? model : `models/${model}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/${fullModelPath}:generateContent?key=${cleanKey}`;
+
         try {
           const res = await fetch(url, {
             method: 'POST',
@@ -1779,7 +1836,10 @@ class ApiService {
           if (res.ok) {
             const data = await res.json();
             const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!txt) throw new Error(`Gemini 模型 [${model}] 未能解析出文字內容`);
+            if (!txt) throw new Error(`Gemini 模型 [${fullModelPath}] 未能解析出文字內容`);
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.setItem('gemini_active_model', fullModelPath);
+            }
             return JSON.parse(txt);
           }
 
@@ -1792,14 +1852,16 @@ class ApiService {
             errDetail = await res.text().catch(() => '');
           }
 
-          // 若為 404，可能是該模型在該帳號/端點不可用，繼續嘗試下一個模型
           if (res.status === 404) {
-            console.warn(`[Gemini API] 模型 ${model} 回傳 404，自動切換下一候選模型...`);
-            lastError = new Error(`模型 ${model} 不存在 (${errDetail || '404 Not Found'})`);
+            console.warn(`[Gemini API] 模型 ${fullModelPath} 回傳 404，嘗試下一候選模型...`);
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.removeItem('gemini_active_model');
+            }
+            lastError = new Error(`模型 ${fullModelPath} 不存在 (${errDetail || '404 Not Found'})`);
             continue;
           }
 
-          // 若為 400, 403 等關鍵錯誤，直接拋出具體原因
+          // 若為 400 (API Key 無效), 403 (權限/額度) 等錯誤，直接跳出顯示真實原因
           throw new Error(`Google API 回傳 HTTP ${res.status}: ${errDetail || '請求未被接受'}`);
         } catch (err) {
           if (err.message && err.message.includes('404')) {
