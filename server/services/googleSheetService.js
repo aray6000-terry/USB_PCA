@@ -520,6 +520,75 @@ class GoogleSheetService {
     };
   }
 
+  // 更新單筆申請單之發票憑證網址與相片 (同步至 Google 試算表與 Google Drive)
+  async updateClaimReceipt(claimNo, receiptUrl, photoBase64 = null) {
+    const config = this.getConfig();
+    let res = { success: false };
+
+    // 1. 優先透過 GAS Web App 同步
+    if (config.isGasConfigured) {
+      try {
+        const payload = {
+          action: 'update_receipt',
+          claim_no: claimNo,
+          receipt_url: receiptUrl,
+          photo_base64: photoBase64,
+          photo_filename: `${claimNo}_receipt.jpg`
+        };
+        const response = await fetch(config.gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          redirect: 'follow'
+        });
+        const text = await response.text();
+        let parsed = {};
+        try { parsed = JSON.parse(text); } catch (e) {}
+        console.log(`[GAS-RECEIPT-UPDATE] 單號 ${claimNo} 憑證更新至 Google 試算表:`, parsed.message || 'OK');
+        res = { success: true, mode: 'gas', result: parsed };
+      } catch (err) {
+        console.warn(`[GAS-RECEIPT-UPDATE-WARN] GAS 憑證同步失敗: ${err.message}`);
+      }
+    }
+
+    // 2. 若有 Service Account，亦同步更新試算表第 M 欄
+    if (config.isServiceAccountConfigured) {
+      try {
+        const { auth, spreadsheetId, sheetName } = this.getAuthClient();
+        const sheets = google.sheets({ version: 'v4', auth });
+        const targetSheet = sheetName || '零用金申請明細';
+        const resList = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: `${targetSheet}!A:A`
+        });
+        const rows = resList.data.values || [];
+        let rowIndex = -1;
+        for (let i = 1; i < rows.length; i++) {
+          if (rows[i] && String(rows[i][0]).trim() === claimNo) {
+            rowIndex = i + 1;
+            break;
+          }
+        }
+        if (rowIndex !== -1) {
+          const photoCell = receiptUrl
+            ? (receiptUrl.startsWith('http') ? `=HYPERLINK("${receiptUrl}", "🔗 查看發票憑證")` : '已上傳本機')
+            : '-';
+          await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `${targetSheet}!M${rowIndex}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[photoCell]] }
+          });
+          res = { success: true, mode: 'service_account' };
+        }
+      } catch (err) {
+        console.warn(`[SA-RECEIPT-UPDATE-WARN] Service Account 憑證更新失敗: ${err.message}`);
+      }
+    }
+
+    return res;
+  }
+
   // ==========================================
   // 3. 人員權限與帳號申請 Google Sheet 同步模組
   // ==========================================

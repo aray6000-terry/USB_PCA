@@ -1330,6 +1330,70 @@ class ApiService {
       return { success: true, message: '申請單更新成功', claim: c };
     },
 
+    updateReceipt: async (id, receiptUrl) => {
+      if (!this.isCloudMode) {
+        try {
+          return await this.request(`/claims/${id}/receipt`, {
+            method: 'POST',
+            body: { receipt_url: receiptUrl }
+          });
+        } catch (e) {
+          if (!e.message.startsWith('CloudModeActive')) throw e;
+        }
+      }
+
+      const claims = this.getCloudClaims();
+      const c = claims.find(item => item.id === id);
+      if (!c) throw new Error('找不到該筆申請單');
+
+      const user = this.currentUser || { name: '同仁', role: 'employee' };
+      c.receipt_url = receiptUrl;
+      c.updated_at = new Date().toISOString();
+
+      if (!c.audit_trail) c.audit_trail = [];
+      c.audit_trail.push({
+        action: '更新憑證',
+        by: user.name,
+        by_role: user.role,
+        at: new Date().toISOString(),
+        note: '重新上傳/補傳發票憑證相片'
+      });
+
+      this.saveCloudClaims(claims);
+
+      // 若有 Google Apps Script URL，非同步同步更新至試算表與 Google Drive
+      const cfg = this.getCloudConfig();
+      if (cfg.google_gas_url && cfg.google_sheet_enabled) {
+        try {
+          const payload = {
+            action: 'update_receipt',
+            claim_no: c.claim_no,
+            receipt_url: receiptUrl,
+            photo_base64: receiptUrl && receiptUrl.startsWith('data:image') ? receiptUrl : null,
+            photo_filename: `${c.claim_no}_receipt.jpg`
+          };
+
+          fetch(cfg.google_gas_url, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(() => {
+            console.log(`單號 ${c.claim_no} 憑證更新請求已向 Google 試算表發送`);
+          }).catch(err => console.warn('GAS 憑證更新拋送略過:', err));
+        } catch (e) {
+          console.warn('GAS 憑證更新錯誤:', e);
+        }
+      }
+
+      return {
+        success: true,
+        message: `申請單 ${c.claim_no} 發票憑證已成功重新上傳！`,
+        receipt_url: receiptUrl,
+        claim: c
+      };
+    },
+
     updateStatus: async (id, status, reason = '', approved_amount = null) => {
       if (!this.isCloudMode) {
         try {

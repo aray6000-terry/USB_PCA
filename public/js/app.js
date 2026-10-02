@@ -11,6 +11,8 @@
     currentEditingClaimId: null,
     currentReviewingClaimId: null,
     currentPreviewingClaim: null,
+    currentReuploadClaimId: null,
+    reuploadFileBase64: null,
     filters: {
       month: '',
       category: 'all',
@@ -138,6 +140,7 @@
     btnOpenLogsFromReview: document.getElementById('btn-open-logs-from-review'),
     reviewReceiptRow: document.getElementById('review-receipt-row'),
     btnReviewViewReceipt: document.getElementById('btn-review-view-receipt'),
+    btnReviewReuploadReceipt: document.getElementById('btn-review-reupload-receipt'),
 
     // Audit Log Modal DOM
     btnApprovalLogs: document.getElementById('btn-approval-logs'),
@@ -189,6 +192,26 @@
     receiptViewerAmount: document.getElementById('receipt-viewer-amount'),
     receiptViewerImg: document.getElementById('receipt-viewer-img'),
     receiptViewerOpenLink: document.getElementById('receipt-viewer-open-link'),
+    btnViewerReupload: document.getElementById('btn-viewer-reupload'),
+    receiptViewerErrorBox: document.getElementById('receipt-viewer-error-box'),
+    btnViewerRetryReupload: document.getElementById('btn-viewer-retry-reupload'),
+
+    // 憑證重新上傳 / 補傳彈窗 DOM
+    modalReceiptReupload: document.getElementById('modal-receipt-reupload'),
+    reuploadModalTitle: document.getElementById('reupload-modal-title'),
+    reuploadClaimNo: document.getElementById('reupload-claim-no'),
+    reuploadExpenseDate: document.getElementById('reupload-expense-date'),
+    reuploadItemName: document.getElementById('reupload-item-name'),
+    reuploadAmount: document.getElementById('reupload-amount'),
+    reuploadDropzone: document.getElementById('reupload-dropzone'),
+    reuploadFileInput: document.getElementById('reupload-file-input'),
+    btnBrowseReupload: document.getElementById('btn-browse-reupload'),
+    reuploadPrompt: document.getElementById('reupload-prompt'),
+    reuploadPreviewBox: document.getElementById('reupload-preview-box'),
+    reuploadPreviewImg: document.getElementById('reupload-preview-img'),
+    btnRemoveReupload: document.getElementById('btn-remove-reupload'),
+    btnSubmitReupload: document.getElementById('btn-submit-reupload'),
+    reuploadFileMeta: document.getElementById('reupload-file-meta'),
 
     // A4 憑證列印中心 DOM
     btnQuickReceiptsA4: document.getElementById('btn-quick-receipts-a4'),
@@ -663,8 +686,15 @@
   // 開啟發票憑證大圖即時檢視彈窗
   function openReceiptPreview(claimId) {
     const claim = state.claims.find(c => c.id === claimId);
-    if (!claim || !claim.receipt_url) {
-      showToast('此申請單無發票憑證相片', 'info');
+    if (!claim) {
+      showToast('找不到該筆申請單', 'error');
+      return;
+    }
+
+    if (!claim.receipt_url) {
+      // 若無憑證相片，主動引導開啟補傳視窗
+      openReuploadModal(claimId);
+      showToast('此申請單尚未上傳發票憑證照片，請於此處補傳', 'info');
       return;
     }
 
@@ -677,12 +707,21 @@
     dom.receiptViewerReceiptNo.textContent = claim.receipt_no || '(未填發票號)';
     dom.receiptViewerAmount.textContent = formatCurrency(claim.amount);
 
+    if (dom.receiptViewerErrorBox) {
+      dom.receiptViewerErrorBox.classList.add('hidden');
+    }
+
     const img = dom.receiptViewerImg;
+    img.style.display = 'block';
     img.style.opacity = '0.3';
     img.alt = '發票憑證相片載入中...';
 
     img.onload = () => {
+      img.style.display = 'block';
       img.style.opacity = '1';
+      if (dom.receiptViewerErrorBox) {
+        dom.receiptViewerErrorBox.classList.add('hidden');
+      }
     };
 
     let retryCount = 0;
@@ -710,8 +749,11 @@
         }
       }
 
-      img.alt = '⚠️ 圖片載入失敗 (檔案可能已被移動或伺服器未啟動)';
-      showToast('圖片載入失敗，可點擊下方按鈕在新分頁開啟', 'warning');
+      img.style.display = 'none';
+      if (dom.receiptViewerErrorBox) {
+        dom.receiptViewerErrorBox.classList.remove('hidden');
+      }
+      showToast('⚠️ 憑證圖片載入失敗，可點擊下方「立即重新上傳 / 更換憑證照片」', 'warning');
     };
 
     img.src = fullUrl;
@@ -735,6 +777,123 @@
 
     dom.modalReceiptViewer.classList.add('active');
   }
+
+  // ====================================================
+  // 發票憑證重新上傳 / 補傳核心模組
+  // ====================================================
+
+  function openReuploadModal(claimId) {
+    const claim = state.claims.find(c => c.id === claimId);
+    if (!claim) {
+      showToast('找不到該筆申請單', 'error');
+      return;
+    }
+
+    state.currentReuploadClaimId = claimId;
+    state.reuploadFileBase64 = null;
+
+    if (dom.reuploadClaimNo) dom.reuploadClaimNo.textContent = claim.claim_no || '-';
+    if (dom.reuploadExpenseDate) dom.reuploadExpenseDate.textContent = claim.expense_date || '-';
+    if (dom.reuploadItemName) dom.reuploadItemName.textContent = claim.item_name || '-';
+    if (dom.reuploadAmount) dom.reuploadAmount.textContent = formatCurrency(claim.amount);
+
+    if (dom.reuploadModalTitle) {
+      dom.reuploadModalTitle.textContent = claim.receipt_url ? '更換 / 重新上傳發票憑證' : '補傳發票憑證相片';
+    }
+
+    // 重設選檔與預覽區狀態
+    if (dom.reuploadFileInput) dom.reuploadFileInput.value = '';
+    if (dom.reuploadPrompt) dom.reuploadPrompt.classList.remove('hidden');
+    if (dom.reuploadPreviewBox) dom.reuploadPreviewBox.classList.add('hidden');
+    if (dom.reuploadPreviewImg) dom.reuploadPreviewImg.src = '';
+    if (dom.btnSubmitReupload) dom.btnSubmitReupload.disabled = true;
+
+    dom.modalReceiptReupload.classList.add('active');
+  }
+
+  function handleReuploadFileSelected(file) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('請選取圖片格式 (JPG, PNG, WebP)', 'warning');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('圖片檔案過大，請選取小於 15MB 之相片', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      state.reuploadFileBase64 = dataUrl;
+
+      if (dom.reuploadPreviewImg) dom.reuploadPreviewImg.src = dataUrl;
+      if (dom.reuploadFileMeta) {
+        const sizeKb = Math.round(file.size / 1024);
+        dom.reuploadFileMeta.textContent = `${file.name || '相片檔案'} (${sizeKb} KB)`;
+      }
+      if (dom.reuploadPrompt) dom.reuploadPrompt.classList.add('hidden');
+      if (dom.reuploadPreviewBox) dom.reuploadPreviewBox.classList.remove('hidden');
+      if (dom.btnSubmitReupload) dom.btnSubmitReupload.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function submitReuploadReceipt() {
+    if (!state.currentReuploadClaimId || !state.reuploadFileBase64) {
+      showToast('請先選取欲更新之發票憑證照片', 'warning');
+      return;
+    }
+
+    const btn = dom.btnSubmitReupload;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ 上傳儲存與同步中...</span>';
+
+    try {
+      const res = await api.claims.updateReceipt(state.currentReuploadClaimId, state.reuploadFileBase64);
+      if (res && res.success) {
+        const claim = state.claims.find(c => c.id === state.currentReuploadClaimId);
+        if (claim) {
+          claim.receipt_url = res.receipt_url || state.reuploadFileBase64;
+          claim.updated_at = new Date().toISOString();
+        }
+
+        // 若大圖檢視彈窗為同一筆單，即時刷新預覽畫面
+        if (dom.modalReceiptViewer && dom.modalReceiptViewer.classList.contains('active')) {
+          if (state.currentPreviewingClaim && state.currentPreviewingClaim.id === state.currentReuploadClaimId) {
+            state.currentPreviewingClaim.receipt_url = claim ? claim.receipt_url : state.reuploadFileBase64;
+            dom.receiptViewerImg.src = state.reuploadFileBase64;
+            dom.receiptViewerImg.style.display = 'block';
+            dom.receiptViewerImg.style.opacity = '1';
+            if (dom.receiptViewerErrorBox) dom.receiptViewerErrorBox.classList.add('hidden');
+          }
+        }
+
+        // 若審核彈窗為同一筆單，即時刷新審核列按鈕
+        if (dom.modalReview && dom.modalReview.classList.contains('active')) {
+          if (state.currentReviewingClaimId === state.currentReuploadClaimId) {
+            if (dom.btnReviewViewReceipt) dom.btnReviewViewReceipt.style.display = 'inline-flex';
+            if (dom.btnReviewReuploadReceipt) dom.btnReviewReuploadReceipt.textContent = '📷 更換憑證';
+          }
+        }
+
+        renderClaimsTable();
+        dom.modalReceiptReupload.classList.remove('active');
+        showToast(res.message || '🎉 憑證照片已成功更新上傳！', 'success');
+      } else {
+        showToast((res && res.message) || '更新憑證失敗，請重試', 'error');
+      }
+    } catch (err) {
+      console.error('Submit reupload receipt error:', err);
+      showToast('更新憑證發生錯誤: ' + (err.message || '未知錯誤'), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+
 
   // ====================================================
   // 發票憑證相片 A4 自動排版與列印中心
@@ -1909,7 +2068,30 @@
         </td>
         <td>
           ${c.receipt_no ? `<span style="font-family:monospace;font-size:12px;">${escapeHtml(c.receipt_no)}</span>` : '<span style="color:var(--text-dark);">-</span>'}
-          ${c.receipt_url ? `<div><button type="button" class="btn-receipt-preview" data-id="${c.id}" style="border:1px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.12);color:#93C5FD;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;margin-top:4px;display:inline-flex;align-items:center;gap:4px;font-weight:500;">🔍 檢視憑證</button></div>` : ''}
+          ${(() => {
+            const canReupload = state.user && (
+              state.user.role === 'admin' ||
+              state.user.role === 'accountant' ||
+              c.user_id === state.user.id ||
+              c.user_name === state.user.name
+            );
+            if (c.receipt_url) {
+              return `
+                <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;align-items:center;">
+                  <button type="button" class="btn-receipt-preview" data-id="${c.id}" style="border:1px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.12);color:#93C5FD;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-weight:500;">🔍 檢視憑證</button>
+                  ${canReupload ? `<button type="button" class="btn-receipt-reupload" data-id="${c.id}" title="更換 / 重新上傳憑證照片" style="border:1px solid rgba(245,158,11,0.4);background:rgba(245,158,11,0.15);color:#FCD34D;padding:3px 7px;border-radius:4px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-weight:500;">📷 更新</button>` : ''}
+                </div>
+              `;
+            }
+            if (canReupload) {
+              return `
+                <div style="margin-top:4px;">
+                  <button type="button" class="btn-receipt-reupload" data-id="${c.id}" title="補傳發票相片" style="border:1px solid rgba(239,68,68,0.4);background:rgba(239,68,68,0.15);color:#FCA5A5;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-weight:500;">⚠️ 補傳憑證</button>
+                </div>
+              `;
+            }
+            return `<div style="margin-top:2px;font-size:11px;color:var(--text-dark);">無憑證</div>`;
+          })()}
         </td>
         <td>
           <span style="font-size:12px;color:var(--text-muted);">${escapeHtml(c.notes || '-')}</span>
@@ -1928,6 +2110,9 @@
     // 綁定動態生成的按鈕事件
     dom.claimsTbody.querySelectorAll('.btn-receipt-preview').forEach(btn => {
       btn.addEventListener('click', () => openReceiptPreview(btn.dataset.id));
+    });
+    dom.claimsTbody.querySelectorAll('.btn-receipt-reupload').forEach(btn => {
+      btn.addEventListener('click', () => openReuploadModal(btn.dataset.id));
     });
     dom.claimsTbody.querySelectorAll('.btn-review').forEach(btn => {
       btn.addEventListener('click', () => openReviewModal(btn.dataset.id));
@@ -2149,9 +2334,16 @@
       updateReviewDiffTag(claim.amount, currentApprovedAmt);
     }
 
-    // 發票憑證檢視列控制
+    // 發票憑證檢視與更新列控制
     if (dom.reviewReceiptRow) {
-      dom.reviewReceiptRow.style.display = claim.receipt_url ? 'flex' : 'none';
+      dom.reviewReceiptRow.style.display = 'flex';
+      if (claim.receipt_url) {
+        if (dom.btnReviewViewReceipt) dom.btnReviewViewReceipt.style.display = 'inline-flex';
+        if (dom.btnReviewReuploadReceipt) dom.btnReviewReuploadReceipt.textContent = '📷 更換憑證';
+      } else {
+        if (dom.btnReviewViewReceipt) dom.btnReviewViewReceipt.style.display = 'none';
+        if (dom.btnReviewReuploadReceipt) dom.btnReviewReuploadReceipt.textContent = '⚠️ 立即補傳憑證照片';
+      }
     }
 
     // 二階段審核橫幅提示與按鈕動態控制
@@ -2935,6 +3127,102 @@
         }
       });
     }
+
+    if (dom.btnReviewReuploadReceipt) {
+      dom.btnReviewReuploadReceipt.addEventListener('click', () => {
+        if (state.currentReviewingClaimId) {
+          openReuploadModal(state.currentReviewingClaimId);
+        }
+      });
+    }
+
+    if (dom.btnViewerReupload) {
+      dom.btnViewerReupload.addEventListener('click', () => {
+        if (state.currentPreviewingClaim) {
+          openReuploadModal(state.currentPreviewingClaim.id);
+        }
+      });
+    }
+
+    if (dom.btnViewerRetryReupload) {
+      dom.btnViewerRetryReupload.addEventListener('click', () => {
+        if (state.currentPreviewingClaim) {
+          openReuploadModal(state.currentPreviewingClaim.id);
+        }
+      });
+    }
+
+    // 重新上傳憑證彈窗互動事件
+    if (dom.reuploadFileInput) {
+      dom.reuploadFileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleReuploadFileSelected(e.target.files[0]);
+        }
+      });
+    }
+
+    if (dom.btnBrowseReupload) {
+      dom.btnBrowseReupload.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dom.reuploadFileInput) dom.reuploadFileInput.click();
+      });
+    }
+
+    if (dom.reuploadDropzone) {
+      dom.reuploadDropzone.addEventListener('click', (e) => {
+        if (e.target.closest('#btn-remove-reupload')) return;
+        if (dom.reuploadFileInput) dom.reuploadFileInput.click();
+      });
+
+      dom.reuploadDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dom.reuploadDropzone.classList.add('dragover');
+      });
+
+      dom.reuploadDropzone.addEventListener('dragleave', () => {
+        dom.reuploadDropzone.classList.remove('dragover');
+      });
+
+      dom.reuploadDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dom.reuploadDropzone.classList.remove('dragover');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleReuploadFileSelected(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    if (dom.btnRemoveReupload) {
+      dom.btnRemoveReupload.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dom.reuploadFileInput) dom.reuploadFileInput.value = '';
+        state.reuploadFileBase64 = null;
+        if (dom.reuploadPreviewImg) dom.reuploadPreviewImg.src = '';
+        if (dom.reuploadPrompt) dom.reuploadPrompt.classList.remove('hidden');
+        if (dom.reuploadPreviewBox) dom.reuploadPreviewBox.classList.add('hidden');
+        if (dom.btnSubmitReupload) dom.btnSubmitReupload.disabled = true;
+      });
+    }
+
+    if (dom.btnSubmitReupload) {
+      dom.btnSubmitReupload.addEventListener('click', submitReuploadReceipt);
+    }
+
+    // 支援 Ctrl + V 直接貼上憑證照片
+    window.addEventListener('paste', (e) => {
+      if (dom.modalReceiptReupload && dom.modalReceiptReupload.classList.contains('active')) {
+        const items = (e.clipboardData || window.clipboardData)?.items;
+        if (!items) return;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const blob = items[i].getAsFile();
+            handleReuploadFileSelected(blob);
+            showToast('已從剪貼簿讀取貼上憑證相片！', 'info');
+            break;
+          }
+        }
+      }
+    });
 
     if (dom.receiptViewerOpenLink) {
       dom.receiptViewerOpenLink.addEventListener('click', (e) => {

@@ -259,6 +259,51 @@ function doPost(e) {
       });
     }
 
+    // 6. 報銷單據：更新或重新上傳發票憑證 (update_receipt)
+    if (action === 'update_receipt' || action === 'upload_receipt') {
+      var claimSheet = getOrCreateClaimSheet(ss);
+      var claimNo = String(payload.claim_no || '').trim();
+      var photoUrl = payload.receipt_url || '';
+
+      if (payload.photo_base64) {
+        var driveUrl = savePhotoToDrive(claimNo, payload.photo_base64, payload.photo_filename);
+        if (driveUrl) {
+          photoUrl = driveUrl;
+        }
+      }
+
+      var lastRow = claimSheet.getLastRow();
+      var updatedRow = -1;
+      if (lastRow >= 2 && claimNo) {
+        var headerRange = claimSheet.getRange(1, 1, 1, claimSheet.getLastColumn()).getValues()[0];
+        var claimNoCol = -1;
+        var receiptUrlCol = -1;
+        for (var c = 0; c < headerRange.length; c++) {
+          var h = String(headerRange[c] || '').trim();
+          if (h.indexOf('單號') !== -1) claimNoCol = c + 1;
+          if (h.indexOf('憑證') !== -1 || h.indexOf('照片') !== -1 || h.indexOf('網址') !== -1) receiptUrlCol = c + 1;
+        }
+        if (claimNoCol !== -1 && receiptUrlCol !== -1) {
+          var dataVals = claimSheet.getRange(2, claimNoCol, lastRow - 1, 1).getValues();
+          for (var r = 0; r < dataVals.length; r++) {
+            if (String(dataVals[r][0] || '').trim().toLowerCase() === claimNo.toLowerCase()) {
+              claimSheet.getRange(r + 2, receiptUrlCol).setValue(photoUrl);
+              updatedRow = r + 2;
+              break;
+            }
+          }
+        }
+      }
+
+      return jsonResponse({
+        success: true,
+        message: '申請單 ' + claimNo + ' 之發票憑證照片已成功更新至 Google 試算表！',
+        claim_no: claimNo,
+        receipt_url: photoUrl,
+        sheet_row: updatedRow
+      });
+    }
+
     return jsonResponse({ success: false, message: '未知的操作指令: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: err.toString(), message: '處理失敗: ' + err.message });
@@ -657,3 +702,47 @@ function parseClaimRowsFromSheet(sheet) {
   return list;
 }
 
+// ==========================================
+// Google Drive 發票憑證圖檔儲存模組
+// ==========================================
+
+function savePhotoToDrive(claimNo, base64Data, filename) {
+  if (!base64Data || typeof base64Data !== 'string') return '';
+  try {
+    var folderName = '零用金發票憑證';
+    var folders = DriveApp.getFoldersByName(folderName);
+    var targetFolder = null;
+    if (folders.hasNext()) {
+      targetFolder = folders.next();
+    } else {
+      targetFolder = DriveApp.createFolder(folderName);
+      targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+
+    var cleanBase64 = base64Data;
+    var mimeType = 'image/jpeg';
+    if (base64Data.indexOf(';base64,') !== -1) {
+      var parts = base64Data.split(';base64,');
+      mimeType = parts[0].replace('data:', '') || 'image/jpeg';
+      cleanBase64 = parts[1];
+    }
+
+    var ext = 'jpg';
+    if (mimeType.indexOf('png') !== -1) ext = 'png';
+    else if (mimeType.indexOf('gif') !== -1) ext = 'gif';
+    else if (mimeType.indexOf('webp') !== -1) ext = 'webp';
+
+    var fileTitle = (claimNo ? claimNo + '_' : '') + 'receipt_' + Date.now() + '.' + ext;
+    var decoded = Utilities.base64Decode(cleanBase64);
+    var blob = Utilities.newBlob(decoded, mimeType, fileTitle);
+
+    var file = targetFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    // 回傳 Google Drive 直連預覽網址
+    return file.getUrl();
+  } catch (err) {
+    Logger.log('儲存相片至 Google Drive 失敗: ' + err.toString());
+    return '';
+  }
+}

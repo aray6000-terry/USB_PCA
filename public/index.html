@@ -680,8 +680,9 @@
           </div>
           <div class="summary-row" id="review-receipt-row">
             <span class="label">發票憑證:</span>
-            <span id="review-receipt-col" class="val">
-              <button type="button" id="btn-review-view-receipt" style="border:1px solid rgba(59,130,246,0.4);background:rgba(59,130,246,0.18);color:#93C5FD;padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-weight:600;">🔍 查看發票照片</button>
+            <span id="review-receipt-col" class="val" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <button type="button" id="btn-review-view-receipt" style="border:1px solid rgba(59,130,246,0.4);background:rgba(59,130,246,0.18);color:#93C5FD;padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-weight:600;">🔍 查看照片</button>
+              <button type="button" id="btn-review-reupload-receipt" style="border:1px solid rgba(245,158,11,0.4);background:rgba(245,158,11,0.18);color:#FCD34D;padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-weight:600;">📷 更新/補傳憑證</button>
             </span>
           </div>
         </div>
@@ -1013,17 +1014,98 @@
         </div>
         <div class="receipt-viewer-img-box">
           <img id="receipt-viewer-img" src="" alt="發票憑證相片載入中...">
+          <!-- 圖片載入失敗時的即時重傳引導卡片 -->
+          <div id="receipt-viewer-error-box" class="receipt-viewer-error-box hidden">
+            <div class="receipt-error-icon">⚠️</div>
+            <h4 style="font-size: 15px; font-weight: 600; color: #FCA5A5; margin-bottom: 4px;">憑證圖片載入失敗或尚未上傳完成</h4>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">可能原因：網路暫時中斷、雲端權限變更或原圖檔損毀。</p>
+            <button type="button" id="btn-viewer-retry-reupload" class="btn btn-warning btn-sm">
+              📷 立即重新上傳 / 更新憑證相片
+            </button>
+          </div>
         </div>
         <div class="modal-footer" style="justify-content: space-between;">
           <a id="receipt-viewer-open-link" href="#" target="_blank" class="btn btn-outline btn-sm">
             🔗 在新分頁開啟原始檔案
           </a>
-          <button type="button" class="btn btn-primary btn-sm" data-close="modal-receipt-viewer">
-            關閉檢視
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btn-viewer-reupload" class="btn btn-warning btn-sm">
+              📷 重新上傳 / 更換憑證
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" data-close="modal-receipt-viewer">
+              關閉檢視
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 8: 發票憑證重新上傳 / 補傳更新中心 -->
+    <div id="modal-receipt-reupload" class="modal-overlay">
+      <div class="modal-card glass-panel modal-md">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">📷</span>
+            <h3 id="reupload-modal-title">重新上傳 / 補傳發票憑證</h3>
+          </div>
+          <button class="btn-close-modal" data-close="modal-receipt-reupload">&times;</button>
+        </div>
+
+        <div class="reupload-claim-banner" style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="font-size: 13px; color: var(--text-muted);">申請單號：<strong id="reupload-claim-no" style="color: #60A5FA; font-family: monospace;">-</strong></span>
+            <span style="font-size: 13px; color: var(--text-muted);">消費日期：<strong id="reupload-expense-date" style="color: #F8FAFC;">-</strong></span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="font-size: 13px; color: var(--text-muted);">項目說明：<strong id="reupload-item-name" style="color: #F8FAFC;">-</strong></span>
+            <span style="font-size: 13px; color: var(--text-muted);">金額：<strong id="reupload-amount" style="color: #34D399; font-weight: 700;">-</strong></span>
+          </div>
+        </div>
+
+        <div class="reupload-hint-notice" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #FCD34D;">
+          💡 <strong>憑證更新說明</strong>：若原先上傳憑證照片損毀、顯示破圖或需替換更清晰的發票收據，請於下方選取照片。確認後將即時覆蓋更新，並自動同步至雲端硬碟與 Google 試算表。
+        </div>
+
+        <!-- 拖曳/選取檔案區 -->
+        <div class="receipt-upload-zone" id="reupload-dropzone" style="min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+          <input type="file" id="reupload-file-input" accept="image/*" class="file-hidden">
+          
+          <div class="upload-prompt" id="reupload-prompt">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 36px; height: 36px; color: #3B82F6;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span style="font-weight: 600; font-size: 14px; margin-top: 4px;">點擊選取相片、手機拍照 或 拖曳發票照片至此</span>
+            <span class="upload-hint">支援 JPG、PNG、WebP，亦支援直接 <code>Ctrl + V</code> 貼上剪貼簿相片</span>
+            <button type="button" id="btn-browse-reupload" class="btn btn-secondary btn-sm" style="margin-top: 10px; pointer-events: none;">
+              📁 瀏覽照片檔案
+            </button>
+          </div>
+
+          <!-- 預覽容器 -->
+          <div class="reupload-preview-wrapper hidden" id="reupload-preview-box" style="position: relative; width: 100%; text-align: center;">
+            <div style="max-height: 240px; overflow: hidden; display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.4); border-radius: 4px; padding: 8px;">
+              <img id="reupload-preview-img" src="" alt="憑證預覽" style="max-height: 220px; max-width: 100%; object-fit: contain; border-radius: 4px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+              <span id="reupload-file-meta" style="font-size: 12px; color: var(--text-muted);">已選取新照片</span>
+              <button type="button" id="btn-remove-reupload" class="btn btn-danger btn-sm" style="padding: 2px 8px; font-size: 12px;">
+                🗑️ 清除重選
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 20px;">
+          <button type="button" class="btn btn-outline" data-close="modal-receipt-reupload">取消</button>
+          <button type="button" id="btn-submit-reupload" class="btn btn-primary" disabled>
+            <span>🚀 確認更新上傳憑證</span>
           </button>
         </div>
       </div>
     </div>
+
 
     <!-- Modal 6: 發票憑證照片 A4 自動排版與列印中心 -->
     <div id="modal-receipts-a4" class="modal-overlay modal-a4-overlay">

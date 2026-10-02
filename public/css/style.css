@@ -1854,6 +1854,21 @@ textarea:focus {
   border-radius: 4px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
+.receipt-viewer-error-box {
+  padding: 30px 20px;
+  text-align: center;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px dashed rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 480px;
+  margin: 10px auto;
+}
+.receipt-error-icon {
+  font-size: 38px;
+  margin-bottom: 8px;
+}
+
 .receipt-viewer-meta {
   display: flex;
   justify-content: space-around;

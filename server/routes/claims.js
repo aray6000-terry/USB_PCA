@@ -406,6 +406,72 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// 4-1. 重新上傳 / 補傳 / 更新發票憑證相片 (支援 POST 與 PUT)
+const handleUpdateReceipt = async (req, res) => {
+  try {
+    const claim = db.findClaimById(req.params.id);
+    if (!claim) {
+      return res.status(404).json({ success: false, message: '找不到該筆申請單' });
+    }
+
+    // RBAC: 一般員工僅能更新自己的申請單憑證；會計與超級使用者可為任何單據補傳/更新憑證
+    if (req.user.role === 'employee' && claim.user_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: '權限不足：您只能更新自己申請單的憑證照片' });
+    }
+
+    const { receipt_url } = req.body;
+    if (!receipt_url) {
+      return res.status(400).json({ success: false, message: '請提供發票憑證圖片資料' });
+    }
+
+    let savedReceiptUrl = receipt_url;
+    let rawPhotoBase64 = null;
+
+    if (receipt_url.startsWith('data:image')) {
+      rawPhotoBase64 = receipt_url;
+      try {
+        savedReceiptUrl = await googleDriveService.uploadReceipt(claim.claim_no, receipt_url);
+      } catch (uploadErr) {
+        console.warn('Receipt re-upload notice:', uploadErr.message);
+      }
+    }
+
+    const trail = claim.audit_trail || [];
+    trail.push({
+      action: '更新憑證',
+      by: req.user.name,
+      by_role: req.user.role,
+      at: new Date().toISOString(),
+      note: '重新上傳/更換發票憑證照片'
+    });
+
+    const updated = db.updateClaim(claim.id, {
+      receipt_url: savedReceiptUrl,
+      audit_trail: trail,
+      sheet_synced: false,
+      updated_at: new Date().toISOString()
+    });
+
+    // 非同步同步更新至 Google Sheets
+    googleSheetService.updateClaimReceipt(claim.claim_no, savedReceiptUrl, rawPhotoBase64).catch(err => {
+      console.warn('Background Google Sheet receipt update notice:', err.message);
+    });
+
+    res.json({
+      success: true,
+      message: `申請單 ${claim.claim_no} 發票憑證已成功重新上傳更新！`,
+      receipt_url: savedReceiptUrl,
+      claim: updated
+    });
+  } catch (err) {
+    console.error('Update receipt error:', err);
+    res.status(500).json({ success: false, message: '更新憑證失敗: ' + (err.message || '未知錯誤') });
+  }
+};
+
+router.post('/:id/receipt', handleUpdateReceipt);
+router.put('/:id/receipt', handleUpdateReceipt);
+
 
 // 5. 審核 / 撥款 / 退回狀態變更與批准金額調整 (落實會計初審 + 超級使用者終審二階段審核)
 router.patch('/:id/status', requireRole('accountant', 'admin'), (req, res) => {
